@@ -1,9 +1,12 @@
 Slots:
+new:    opcode, syma,             next, # self.syma = new node()
 copy:   opcode, syma, symb,       next  # self.symb = self.syma
 load:   opcode, syma, symb, symc, next  # self.symc = self.syma.symb
 save:   opcode, syma, symb, symc, next  # self.symc.symb = self.syma
 drop:   opcode, syma, symb,       next  # clear(self.syma.symb)
-#nuke:   opcode, syma
+
+count:  opcode, syma,             next  # len(self.syma) (number of slots in node)
+iload:  opcode, syma, intb, symc, next  # self.symc = self.syma[intb]
 
 Floating point:
 fadd:   opcode, syma, symb, symc, next  # self.symc = (float) self.syma + self.symb
@@ -20,6 +23,8 @@ and:    opcode, syma, symb, symc, next  # self.symc = self.syma & self.symb
 or:     opcode, syma, symb, symc, next  # self.symc = self.syma | self.symb
 xor:    opcode, syma, symb, symc, next  # self.symc = self.syma ^ self.symb
 not:    opcode, syma, symb,       next  # self.symb = ~self.syma
+lshift: opcode, syma, symb, symc, next  # self.symc = self.syma << self.symb
+rshift: opcode, syma, symb, symc, next  # self.symc = self.syma >> self.symb
 
 add:    opcode, syma, symb, symc, next  # self.symc = self.syma + self.symb
 sum:    opcode, syma, symb, symc, next  # self.symc = self.syma - self.symb
@@ -35,4 +40,5 @@ Symbol:
 stoi:   opcode, syma, symb,       next  # self.symb = (int) self.syma
 
 Control:
-branch: opcode, syma, symb, eq, neq
+branch: opcode, syma, symb, gt, eq, lt  # Take the appropriate branch 
+push:   opcode, syma                    # push the frame, take on new PC, self.
