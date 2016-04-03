@@ -6,7 +6,7 @@
 
 /* Values hold either data or references to nodes.
  * Supported datatypes are ints, floats, and symbols.
- * References can be NULL. Nodes are capped at 65k.
+ * References can be NULL. Nodes are capped at 2Bn.
  *
  * You can perform boolean operations on integers.
  * You can perform basic math operations on integers and floats.
@@ -38,7 +38,7 @@ extern const char *ndl_value_type_to_string[EVAL_SIZE];
 
 
 /* C datatypes for each value datatype. */
-typedef  int16_t ndl_ref;
+typedef  int32_t ndl_ref;
 typedef uint64_t ndl_sym;
 typedef  int64_t ndl_int;
 typedef double   ndl_float;
@@ -66,7 +66,7 @@ typedef struct ndl_value_s ndl_value;
 /* Pretty prints a value.
  * NULL terminates, returns strlen(buff).
  */
-int ndl_value_to_string(ndl_value value, int len, const char *buff);
+int ndl_value_to_string(ndl_value value, int len, char *buff);
 
 /* Value construction macro.
  * Usage: NDL_VALUE(EVAL_SYM, sym=NDL_SYM("hello   "))
