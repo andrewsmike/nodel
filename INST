@@ -1,0 +1,38 @@
+Slots:
+copy:   opcode, syma, symb,       next  # self.symb = self.syma
+load:   opcode, syma, symb, symc, next  # self.symc = self.syma.symb
+save:   opcode, syma, symb, symc, next  # self.symc.symb = self.syma
+drop:   opcode, syma, symb,       next  # clear(self.syma.symb)
+#nuke:   opcode, syma
+
+Floating point:
+fadd:   opcode, syma, symb, symc, next  # self.symc = (float) self.syma + self.symb
+fsub:   opcode, syma, symb, symc, next  # self.symc = (float) self.syma - self.symb
+fneg:   opcode, syma, symb,       next  # self.symb = (float) -self.syma
+fmul:   opcode, syma, symb, symc, next  # self.symc = (float) self.syma * self.symb
+fdiv:   opcode, syma, symb, symc, next  # self.symc = (float) self.syma / self.symb
+fmod:   opcode, syma, symb, symc, next  # self.symc = (float) self.syma % self.symb
+fsqrt:  opcode: syma, symb,       next  # self.symb = sqrt(self.syma)
+ftoi:   opcode, syma, symb,       next  # self.symb = (int) self.syma
+
+Integer:
+and:    opcode, syma, symb, symc, next  # self.symc = self.syma & self.symb
+or:     opcode, syma, symb, symc, next  # self.symc = self.syma | self.symb
+xor:    opcode, syma, symb, symc, next  # self.symc = self.syma ^ self.symb
+not:    opcode, syma, symb,       next  # self.symb = ~self.syma
+
+add:    opcode, syma, symb, symc, next  # self.symc = self.syma + self.symb
+sum:    opcode, syma, symb, symc, next  # self.symc = self.syma - self.symb
+neg:    opcode, syma, symb,       next  # self.symb = -self.syma
+mul:    opcode, syma, symb, symc, next  # self.symc = self.syma * self.symb
+div:    opcode, syma, symb, symc, next  # self.symc = self.syma / self.symb
+mod:    opcode, syma, symb, symc, next  # self.symc = self.syma % self.symb
+
+itof:   opcode, syma, symb,       next  # self.symb = (float) self.syma
+itos:   opcode, syma, symb,       next  # self.symb = (symbol) self.syma
+
+Symbol:
+stoi:   opcode, syma, symb,       next  # self.symb = (int) self.syma
+
+Control:
+branch: opcode, syma, symb, eq, neq

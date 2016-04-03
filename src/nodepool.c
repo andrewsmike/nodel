@@ -83,7 +83,7 @@ int nodel_kv_node_depth(nodel_kv_node *node) {
 }
 nodel_sym nodel_kv_node_index(nodel_kv_node *node, int index) {
 
-    while (index-->0 && node != NULL)
+    while (index-- > 0 && node != NULL)
         node = node->next;
 
     if (node != NULL)
