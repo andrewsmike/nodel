@@ -9,12 +9,12 @@ int main(int argc, const char *argv[]) {
 
     printf("Hello, world.\n");
 
-    nodel_node_pool *pool = nodel_node_pool_init();
+    ndl_node_pool *pool = ndl_node_pool_init();
 
     if (pool == NULL) {
         fprintf(stderr, "Failed to allocate nodepool. !?!?\n");
         exit(EXIT_FAILURE);
     }
 
-    nodel_node_pool_kill(pool);
+    ndl_node_pool_kill(pool);
 }

@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 
-typedef enum nodel_value_type_e {
+typedef enum ndl_value_type_e {
 
     ENONE  = -1,   // Unknown
     EREF   =  0,   // Reference to other node.
@@ -11,41 +11,28 @@ typedef enum nodel_value_type_e {
     EINT   =  2,   // Integer value.
     EFLOAT =  3,   // Floating point value.
 
-} nodel_value_type;
+} ndl_value_type;
 
 
-typedef int32_t nodel_ref;
-#define NODEL_NULL ((nodel_ref) -1)
+typedef int32_t ndl_ref;
+#define NDL_NULL ((ndl_ref) -1)
 
-typedef uint64_t nodel_sym;
-#define NODEL_NULL_SYM ((nodel_sym) 0)
-typedef int64_t nodel_int;
-typedef double nodel_float;
+typedef uint64_t ndl_sym;
+#define NDL_NULL_SYM ((ndl_sym) 0)
+typedef int64_t ndl_int;
+typedef double ndl_float;
 
 
-typedef struct nodel_value_s {
+typedef struct ndl_value_s {
 
-    nodel_value_type type;
+    ndl_value_type type;
     union {
-        nodel_ref ref; // EREF
-        nodel_sym sym; // ESYM
-        nodel_int num; // EINT
-        nodel_float real; // EREAL
+        ndl_ref ref; // EREF
+        ndl_sym sym; // ESYM
+        ndl_int num; // EINT
+        ndl_float real; // EREAL
     };
 
-} nodel_value;
-
-typedef struct nodel_node_pool_s nodel_node_pool;
-
-nodel_node_pool *nodel_node_pool_init(void);
-void             nodel_node_pool_kill(nodel_node_pool *pool);
-
-nodel_ref nodel_node_pool_alloc(nodel_node_pool *pool);
-
-int nodel_node_pool_set(nodel_node_pool *pool, nodel_ref node, nodel_sym key, nodel_value val);
-nodel_value nodel_node_pool_get(nodel_node_pool *pool, nodel_ref node, nodel_sym key);
-
-int nodel_node_pool_get_size(nodel_node_pool *pool, nodel_ref node);
-nodel_sym nodel_node_pool_get_key(nodel_node_pool *pool, nodel_ref node, int index);
+} ndl_value;
 
 #endif /* NODEL_NODE_H */

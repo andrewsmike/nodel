@@ -2,9 +2,9 @@
 
 #include <stdlib.h>
 
-nodel_kv_node *nodel_kv_node_push(nodel_kv_node *node, nodel_sym key, nodel_value val) {
+ndl_kv_node *ndl_kv_node_push(ndl_kv_node *node, ndl_sym key, ndl_value val) {
 
-    nodel_kv_node *head = (nodel_kv_node *) malloc(sizeof(nodel_kv_node));
+    ndl_kv_node *head = (ndl_kv_node *) malloc(sizeof(ndl_kv_node));
 
     if (head == NULL)
         return node;
@@ -16,16 +16,16 @@ nodel_kv_node *nodel_kv_node_push(nodel_kv_node *node, nodel_sym key, nodel_valu
     return head;
 }
 
-void nodel_kv_node_free(nodel_kv_node *node) {
+void ndl_kv_node_free(ndl_kv_node *node) {
 
     while (node != NULL) {
-        nodel_kv_node *next = node->next;
+        ndl_kv_node *next = node->next;
         free(node);
         node = next;
     }
 }
 
-int nodel_kv_node_set(nodel_kv_node *node, nodel_sym key, nodel_value val) {
+int ndl_kv_node_set(ndl_kv_node *node, ndl_sym key, ndl_value val) {
 
     while (node != NULL && node->key != key)
         node = node->next;
@@ -38,24 +38,24 @@ int nodel_kv_node_set(nodel_kv_node *node, nodel_sym key, nodel_value val) {
     return 0;
 }
 
-nodel_value nodel_kv_node_get(nodel_kv_node *node, nodel_sym key) {
+ndl_value ndl_kv_node_get(ndl_kv_node *node, ndl_sym key) {
 
     while (node != NULL && node->key != key)
         node = node->next;
 
     if (node == NULL)
-        return (nodel_value) {.type = ENONE, .ref = NODEL_NULL};
+        return (ndl_value) {.type = ENONE, .ref = NDL_NULL};
 
     return node->val;
 }
 
-nodel_kv_node *nodel_kv_node_remove(nodel_kv_node *node, nodel_sym key) {
+ndl_kv_node *ndl_kv_node_remove(ndl_kv_node *node, ndl_sym key) {
 
     if (node == NULL)
         return NULL;
 
     if (node->key == key) {
-        nodel_kv_node *next = node->next;
+        ndl_kv_node *next = node->next;
         free(node);
         return next;
     }
@@ -66,14 +66,14 @@ nodel_kv_node *nodel_kv_node_remove(nodel_kv_node *node, nodel_sym key) {
     if (node->next == NULL)
         return node;
 
-    nodel_kv_node *next = node->next;
+    ndl_kv_node *next = node->next;
     node->next = node->next->next;
     free(next);
 
     return node;
 }
 
-int nodel_kv_node_depth(nodel_kv_node *node) {
+int ndl_kv_node_depth(ndl_kv_node *node) {
 
     int depth;
     for (depth = 0; node != NULL; depth++)
@@ -81,7 +81,7 @@ int nodel_kv_node_depth(nodel_kv_node *node) {
 
     return depth;
 }
-nodel_sym nodel_kv_node_index(nodel_kv_node *node, int index) {
+ndl_sym ndl_kv_node_index(ndl_kv_node *node, int index) {
 
     while (index-- > 0 && node != NULL)
         node = node->next;
@@ -89,55 +89,55 @@ nodel_sym nodel_kv_node_index(nodel_kv_node *node, int index) {
     if (node != NULL)
         return node->key;
 
-    return NODEL_NULL_SYM;
+    return NDL_NULL_SYM;
 }
 
-nodel_node_pool *nodel_node_pool_init(void) {
+ndl_node_pool *ndl_node_pool_init(void) {
 
-    nodel_node_pool *pool = (nodel_node_pool*) malloc(sizeof(nodel_node_pool));
+    ndl_node_pool *pool = (ndl_node_pool*) malloc(sizeof(ndl_node_pool));
 
     if (pool == NULL)
         return NULL;
 
-    for (int i = 0; i < NODEL_MAX_NODES; i++)
+    for (int i = 0; i < NDL_MAX_NODES; i++)
         pool->slots[i] = NULL;
 
     return pool;
 }
 
-void nodel_node_pool_kill(nodel_node_pool *pool) {
+void ndl_node_pool_kill(ndl_node_pool *pool) {
 
-    for (int i = 0; i < NODEL_MAX_NODES; i++)
+    for (int i = 0; i < NDL_MAX_NODES; i++)
         if (pool->slots[i] != NULL)
-            nodel_kv_node_free(pool->slots[i]);
+            ndl_kv_node_free(pool->slots[i]);
 
     free(pool);
 }
 
-nodel_ref nodel_node_pool_alloc(nodel_node_pool *pool) {
+ndl_ref ndl_node_pool_alloc(ndl_node_pool *pool) {
 
-    for (int i = 0; i < NODEL_MAX_NODES; i++) {
+    for (int i = 0; i < NDL_MAX_NODES; i++) {
         if (pool->slots[i] == NULL) {
-            pool->slots[i] = nodel_kv_node_push(NULL, *((uint64_t*)"refcount"), (nodel_value){.type=EINT, .num=1});
-            return (nodel_ref) i;
+            pool->slots[i] = ndl_kv_node_push(NULL, *((uint64_t*)"self    "), (ndl_value){.type=EREF, .ref=i});
+            return (ndl_ref) i;
         }
     }
 
-    return NODEL_NULL;
+    return NDL_NULL;
 }
 
-int nodel_node_pool_set(nodel_node_pool *pool, nodel_ref node, nodel_sym key, nodel_value val) {
+int ndl_node_pool_set(ndl_node_pool *pool, ndl_ref node, ndl_sym key, ndl_value val) {
 
-    if (node == NODEL_NULL)
+    if (node == NDL_NULL)
         return -1;
 
-    nodel_kv_node *head = pool->slots[node];
+    ndl_kv_node *head = pool->slots[node];
 
-    int ret = nodel_kv_node_set(head, key, val);
+    int ret = ndl_kv_node_set(head, key, val);
     if (ret == 0)
         return ret;
 
-    nodel_kv_node *t = nodel_kv_node_push(head, key, val);
+    ndl_kv_node *t = ndl_kv_node_push(head, key, val);
 
     if (t == head)
         return -1;
@@ -147,26 +147,26 @@ int nodel_node_pool_set(nodel_node_pool *pool, nodel_ref node, nodel_sym key, no
     return 0;
 }
 
-nodel_value nodel_node_pool_get(nodel_node_pool *pool, nodel_ref node, nodel_sym key) {
+ndl_value ndl_node_pool_get(ndl_node_pool *pool, ndl_ref node, ndl_sym key) {
 
-    if (node == NODEL_NULL)
-        return (nodel_value) {.type=ENONE, .ref=NODEL_NULL};
+    if (node == NDL_NULL)
+        return (ndl_value) {.type=ENONE, .ref=NDL_NULL};
 
-    return nodel_kv_node_get(pool->slots[node], key);
+    return ndl_kv_node_get(pool->slots[node], key);
 }
 
-int nodel_node_pool_get_size(nodel_node_pool *pool, nodel_ref node) {
+int ndl_node_pool_get_size(ndl_node_pool *pool, ndl_ref node) {
 
-    if (node == NODEL_NULL)
+    if (node == NDL_NULL)
         return -1;
 
-    return nodel_kv_node_depth(pool->slots[node]);
+    return ndl_kv_node_depth(pool->slots[node]);
 }
 
-nodel_sym nodel_node_pool_get_key(nodel_node_pool *pool, nodel_ref node, int index) {
+ndl_sym ndl_node_pool_get_key(ndl_node_pool *pool, ndl_ref node, int index) {
 
-    if (node == NODEL_NULL)
+    if (node == NDL_NULL)
         return -1;
 
-    return nodel_kv_node_index(pool->slots[node], index);
+    return ndl_kv_node_index(pool->slots[node], index);
 }

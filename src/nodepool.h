@@ -8,31 +8,40 @@
  * Either O(1) or O(slots) for most operations.
  */
 
-typedef struct nodel_kv_node_s {
+typedef struct ndl_kv_node_s {
 
-    struct nodel_kv_node_s *next;
+    struct ndl_kv_node_s *next;
 
-    nodel_sym key;
-    nodel_value val;
+    ndl_sym key;
+    ndl_value val;
 
-} nodel_kv_node;
+} ndl_kv_node;
 
-nodel_kv_node *nodel_kv_node_push(nodel_kv_node *node, nodel_sym key, nodel_value val); // returns node on error.
-void nodel_kv_node_free(nodel_kv_node *node);
+ndl_kv_node *ndl_kv_node_push(ndl_kv_node *node, ndl_sym key, ndl_value val); // returns node on error.
+void ndl_kv_node_free(ndl_kv_node *node);
 
-int nodel_kv_node_set(nodel_kv_node *node, nodel_sym key, nodel_value val);
-nodel_value nodel_kv_node_get(nodel_kv_node *node, nodel_sym key);
-nodel_kv_node *nodel_kv_node_remove(nodel_kv_node *node, nodel_sym key);
+int ndl_kv_node_set(ndl_kv_node *node, ndl_sym key, ndl_value val);
+ndl_value ndl_kv_node_get(ndl_kv_node *node, ndl_sym key);
+ndl_kv_node *ndl_kv_node_remove(ndl_kv_node *node, ndl_sym key);
 
-int nodel_kv_node_depth(nodel_kv_node *node);
-nodel_sym nodel_kv_node_index(nodel_kv_node *node, int index);
+int ndl_kv_node_depth(ndl_kv_node *node);
+ndl_sym ndl_kv_node_index(ndl_kv_node *node, int index);
 
+#define NDL_MAX_NODES 4096
+typedef struct ndl_node_pool_s {
+    ndl_kv_node *slots[NDL_MAX_NODES];
+} ndl_node_pool;
 
+ndl_node_pool *ndl_node_pool_init(void);
+void           ndl_node_pool_kill(ndl_node_pool *pool);
 
-#define NODEL_MAX_NODES 4096
-struct nodel_node_pool_s {
-    nodel_kv_node *slots[NODEL_MAX_NODES];
-};
+ndl_ref ndl_node_pool_alloc(ndl_node_pool *pool);
+
+int ndl_node_pool_set(ndl_node_pool *pool, ndl_ref node, ndl_sym key, ndl_value val);
+ndl_value ndl_node_pool_get(ndl_node_pool *pool, ndl_ref node, ndl_sym key);
+
+int ndl_node_pool_get_size(ndl_node_pool *pool, ndl_ref node);
+ndl_sym ndl_node_pool_get_key(ndl_node_pool *pool, ndl_ref node, int index);
 
 #endif /* NODEL_NODEPOOL_H */
 
