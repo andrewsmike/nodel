@@ -1,0 +1,6 @@
+Nodel
+=====
+
+Nodel is a toy language aimed at visually representing datastructures and algorithms.
+You can find details about the architecture in ARCH. To build, type 'make'.
+
