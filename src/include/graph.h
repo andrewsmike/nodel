@@ -41,4 +41,11 @@ int ndl_graph_size(ndl_graph *graph, ndl_ref node);
 ndl_value ndl_graph_get(ndl_graph *graph, ndl_ref node, ndl_sym key);
 ndl_sym ndl_graph_index(ndl_graph *graph, ndl_ref node, int index);
 
+/* Get backreferences.
+ * Gets the number of backreferences (including .self),
+ * and gets each referencing node.
+ */
+int ndl_graph_backref_count(ndl_graph *graph, ndl_ref node);
+ndl_ref ndl_graph_backref_index(ndl_graph *graph, ndl_ref node, int index);
+
 #endif /* NODEL_GRAPH_H */
