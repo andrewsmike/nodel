@@ -65,4 +65,7 @@ ndl_sym ndl_graph_index(ndl_graph *graph, ndl_ref node, int index);
 int     ndl_graph_backref_size (ndl_graph *graph, ndl_ref node);
 ndl_ref ndl_graph_backref_index(ndl_graph *graph, ndl_ref node, int index);
 
+/* Print the entirety of a graph. */
+void ndl_graph_print(ndl_graph *graph);
+
 #endif /* NODEL_GRAPH_H */

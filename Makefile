@@ -27,7 +27,7 @@ INC_PATHS=$(addprefix $(INC)/, $(addsuffix .h, $(INC_OBJS)))
 
 # Compiler flags.
 CCFLAGS=-I$(INC) -Wall -Wextra -Wno-unused-parameter -Wformat -Wpedantic -O2
-DEBUG=#-pg -g
+DEBUG=#-g -pg
 
 # Default rule for compiling object files.
 %.o: %.c $(INC_PATHS)

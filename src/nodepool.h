@@ -49,5 +49,7 @@ ndl_value ndl_node_pool_get(ndl_node_pool *pool, ndl_ref node, ndl_sym key);
 int ndl_node_pool_get_size(ndl_node_pool *pool, ndl_ref node);
 ndl_sym ndl_node_pool_get_key(ndl_node_pool *pool, ndl_ref node, int index);
 
+void ndl_node_pool_print(ndl_node_pool *pool);
+
 #endif /* NODEL_NODEPOOL_H */
 

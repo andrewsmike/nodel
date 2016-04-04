@@ -61,7 +61,7 @@ void ndl_prettyprint_sym(ndl_sym value, int len, char *buff) {
 
     for (; i < len; i++) {
         char t = sym[i - len + 8];
-        if (t == '\0') t = '#';
+        if (t >= '\0' && t < ' ') t += '0';
         buff[i] = t;
     }
 }

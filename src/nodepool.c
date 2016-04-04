@@ -1,6 +1,7 @@
 #include "nodepool.h"
 
 #include <stdlib.h>
+#include <stdio.h>
 
 ndl_kv_node *ndl_kv_node_push(ndl_kv_node *node, ndl_sym key, ndl_value val) {
 
@@ -60,14 +61,16 @@ ndl_kv_node *ndl_kv_node_remove(ndl_kv_node *node, ndl_sym key) {
         return next;
     }
 
-    while (node->next != NULL && node->next->key != key)
-        node = node->next;
+    ndl_kv_node *curr = node;
 
-    if (node->next == NULL)
+    while (curr->next != NULL && curr->next->key != key)
+        curr = curr->next;
+
+    if (curr->next == NULL)
         return node;
 
-    ndl_kv_node *next = node->next;
-    node->next = node->next->next;
+    ndl_kv_node *next = curr->next;
+    curr->next = curr->next->next;
     free(next);
 
     return node;
@@ -91,6 +94,19 @@ ndl_sym ndl_kv_node_index(ndl_kv_node *node, int index) {
         return NDL_NULL_SYM;
 
     return node->key;
+}
+
+void nld_kv_node_print(ndl_kv_node *node) {
+
+    char keybuff[16], valbuff[16];
+    keybuff[15] = valbuff[15] = '\0';
+
+    while (node != NULL) {
+        ndl_value_to_string(NDL_VALUE(EVAL_SYM, sym=node->key), 15, keybuff);
+        ndl_value_to_string(node->val, 15, valbuff);
+        printf("(%s:%s)\n", keybuff, valbuff);
+        node = node->next;
+    }
 }
 
 ndl_node_pool *ndl_node_pool_init(void) {
@@ -192,4 +208,18 @@ ndl_sym ndl_node_pool_get_key(ndl_node_pool *pool, ndl_ref node, int index) {
         return -1;
 
     return ndl_kv_node_index(pool->slots[node], index);
+}
+
+void ndl_node_pool_print(ndl_node_pool *pool) {
+
+    printf("Printing nodepool.\n");
+
+    for (int i = 0; i < NDL_MAX_NODES; i++) {
+
+        if (pool->slots[i] != NULL) {
+
+            printf("Printing node %d.\n", i);
+            nld_kv_node_print(pool->slots[i]);
+        }
+    }
 }

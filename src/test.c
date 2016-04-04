@@ -126,6 +126,16 @@ void testgraphaddedge(ndl_graph *graph, ndl_ref a, ndl_ref b, const char *name) 
     }
 }
 
+void testgraphdeledge(ndl_graph *graph, ndl_ref a, const char *name) {
+
+    int err = ndl_graph_del(graph, a, NDL_SYM(name));
+
+    if (err != 0) {
+        fprintf(stderr, "Failed to delete edge\n");
+        exit(EXIT_FAILURE);
+    }
+}
+
 int testgraph(void) {
 
     printf("Testing graph.\n");
@@ -137,24 +147,36 @@ int testgraph(void) {
         return -1;
     }
 
-    printf("Allocating nodes A, B, C, D, E.\n");
+    printf("Allocating nodes A, B, and C.\n");
     ndl_ref a = testgraphalloc(graph);
     ndl_ref b = testgraphalloc(graph);
     ndl_ref c = testgraphalloc(graph);
-    ndl_ref d = testgraphalloc(graph);
-    ndl_ref e = testgraphalloc(graph);
 
-    printf("Printing nodes A and B.\n");
-    testgraphprintnode(graph, a);
-    testgraphprintnode(graph, b);
+    ndl_graph_print(graph);
 
     printf("Adding edges a.b = b, b.c = c, c.a = a.\n");
     testgraphaddedge(graph, a, b, "b       ");
     testgraphaddedge(graph, b, c, "c       ");
     testgraphaddedge(graph, c, a, "a       ");
 
-    printf("Printing node a.\n");
-    testgraphprintnode(graph, a);
+    ndl_graph_print(graph);
+
+    printf("Adding edges b.last = c, b.first = c.\n");
+    testgraphaddedge(graph, b, c, "last    ");
+    testgraphaddedge(graph, b, c, "first   ");
+
+    ndl_graph_print(graph);
+
+    printf("Removing edges b.* = c.\n");
+    testgraphdeledge(graph, b, "c       ");
+    testgraphdeledge(graph, b, "last    ");
+    testgraphdeledge(graph, b, "first   ");
+    ndl_graph_print(graph);
+
+    ndl_graph_unmark(graph, a);
+    ndl_ref t = ndl_graph_salloc(graph, b, NDL_SYM("back    "));
+
+    ndl_graph_print(graph);
 
     ndl_graph_kill(graph);
 
