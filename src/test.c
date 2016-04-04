@@ -4,6 +4,7 @@
 #include <stdlib.h>
 
 #include "node.h"
+#include "nodepool.h"
 #include "graph.h"
 
 int testprettyprint(void) {
@@ -38,14 +39,37 @@ int testprettyprint(void) {
         NDL_VALUE(EVAL_NONE, ref=NDL_NULL_REF)
     };
 
-    char buff[17];
-    buff[16] = '\0';
+    char buff[16];
+    buff[15] = '\0';
 
     int i;
     for (i = 0; values[i].type != EVAL_NONE || values[i].ref != NDL_NULL_REF; i++) {
-        ndl_value_to_string(values[i], 16, buff);
+        ndl_value_to_string(values[i], 15, buff);
         printf("%2ith value: %s.\n", i, buff);
     }
+
+    return 0;
+}
+
+int testnodepool(void) {
+
+    printf("Testing nodepool.\n");
+
+    ndl_node_pool *pool = ndl_node_pool_init();
+
+    if (pool == NULL) {
+        fprintf(stderr, "Failed to allocate node pool.\n");
+        return -1;
+    }
+
+    ndl_node_pool_kill(pool);
+
+    return 0;
+}
+
+int testgraph(void) {
+
+    printf("Testing graph.\n");
 
     return 0;
 }
@@ -54,7 +78,10 @@ int main(int argc, const char *argv[]) {
 
     printf("Beginning tests.\n");
 
-    int err = testprettyprint();
+    int err;
+    err  = testprettyprint();
+    err |= testnodepool();
+    err |= testgraph();
 
     printf("Finished tests.\n");
 

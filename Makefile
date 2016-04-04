@@ -16,8 +16,8 @@ SRC=src
 INC=src/include
 
 # Source and header files.
-SRC_OBJS=test nodepool
-INC_OBJS=node
+SRC_OBJS=test node nodepool graph
+INC_OBJS=     node          graph #eval
 
 OBJ_PATHS=$(addprefix $(SRC)/, $(addsuffix .o, $(SRC_OBJS)))
 SRC_PATHS=$(addprefix $(SRC)/, $(addsuffix .c, $(SRC_OBJS)))

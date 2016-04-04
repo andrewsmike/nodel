@@ -44,7 +44,7 @@ ndl_value ndl_kv_node_get(ndl_kv_node *node, ndl_sym key) {
         node = node->next;
 
     if (node == NULL)
-        return (ndl_value) {.type = ENONE, .ref = NDL_NULL};
+        return (ndl_value) {.type = EVAL_NONE, .ref = NDL_NULL_REF};
 
     return node->val;
 }
@@ -118,17 +118,29 @@ ndl_ref ndl_node_pool_alloc(ndl_node_pool *pool) {
 
     for (int i = 0; i < NDL_MAX_NODES; i++) {
         if (pool->slots[i] == NULL) {
-            pool->slots[i] = ndl_kv_node_push(NULL, *((uint64_t*)"self    "), (ndl_value){.type=EREF, .ref=i});
+            pool->slots[i] = ndl_kv_node_push(NULL, *((uint64_t*)"self    "), (ndl_value){.type=EVAL_REF, .ref=i});
             return (ndl_ref) i;
         }
     }
 
-    return NDL_NULL;
+    return NDL_NULL_REF;
+}
+
+void ndl_node_pool_free(ndl_node_pool *pool, ndl_ref node) {
+
+    if (node == NDL_NULL_REF)
+        return;
+
+    ndl_kv_node_free(pool->slots[node]);
+
+    pool->slots[node] = NULL;
+
+    return;
 }
 
 int ndl_node_pool_set(ndl_node_pool *pool, ndl_ref node, ndl_sym key, ndl_value val) {
 
-    if (node == NDL_NULL)
+    if (node == NDL_NULL_REF)
         return -1;
 
     ndl_kv_node *head = pool->slots[node];
@@ -147,17 +159,27 @@ int ndl_node_pool_set(ndl_node_pool *pool, ndl_ref node, ndl_sym key, ndl_value 
     return 0;
 }
 
+int ndl_node_pool_del(ndl_node_pool *pool, ndl_ref node, ndl_sym key) {
+
+    if (node == NDL_NULL_REF)
+        return -1;
+
+    pool->slots[node] = ndl_kv_node_remove(pool->slots[node], key);
+
+    return 0;
+}
+
 ndl_value ndl_node_pool_get(ndl_node_pool *pool, ndl_ref node, ndl_sym key) {
 
-    if (node == NDL_NULL)
-        return (ndl_value) {.type=ENONE, .ref=NDL_NULL};
+    if (node == NDL_NULL_REF)
+        return (ndl_value) {.type=EVAL_NONE, .ref=NDL_NULL_REF};
 
     return ndl_kv_node_get(pool->slots[node], key);
 }
 
 int ndl_node_pool_get_size(ndl_node_pool *pool, ndl_ref node) {
 
-    if (node == NDL_NULL)
+    if (node == NDL_NULL_REF)
         return -1;
 
     return ndl_kv_node_depth(pool->slots[node]);
@@ -165,7 +187,7 @@ int ndl_node_pool_get_size(ndl_node_pool *pool, ndl_ref node) {
 
 ndl_sym ndl_node_pool_get_key(ndl_node_pool *pool, ndl_ref node, int index) {
 
-    if (node == NDL_NULL)
+    if (node == NDL_NULL_REF)
         return -1;
 
     return ndl_kv_node_index(pool->slots[node], index);
