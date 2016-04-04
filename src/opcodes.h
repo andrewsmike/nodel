@@ -1,0 +1,56 @@
+#ifndef NODEL_OPCODES_H
+#define NODEL_OPCODES_H
+
+#include "eval.h"
+
+#define DEFOP(name) ndl_ref ndl_opcode_ ## name(ndl_graph *graph, ndl_ref local, ndl_ref pc)
+
+/* Nodes and slots. */
+DEFOP(new);
+DEFOP(copy);
+DEFOP(load);
+DEFOP(save);
+DEFOP(drop);
+
+DEFOP(count);
+DEFOP(iload);
+
+/* Floating point. */
+DEFOP(fadd);
+DEFOP(fsub);
+DEFOP(fneg);
+DEFOP(fmul);
+DEFOP(fdiv);
+
+DEFOP(fmod);
+DEFOP(fsqrt);
+DEFOP(ftoi);
+
+/* Integer. */
+DEFOP(and);
+DEFOP(or);
+DEFOP(xor);
+DEFOP(not);
+DEFOP(ulshift);
+DEFOP(urshift);
+
+DEFOP(add);
+DEFOP(sub);
+DEFOP(neg);
+DEFOP(mul);
+DEFOP(div);
+DEFOP(mod);
+DEFOP(lshift);
+DEFOP(rshift);
+
+DEFOP(itof);
+DEFOP(itos);
+
+/* Symbol. */
+DEFOP(stoi);
+
+/* Cotrol. */
+DEFOP(branch);
+DEFOP(push);
+
+#endif /* NODEL_OPCODES_H */

@@ -23,8 +23,6 @@ and:     opcode, syma, symb, symc, next  # self.symc = self.syma & self.symb
 or:      opcode, syma, symb, symc, next  # self.symc = self.syma | self.symb
 xor:     opcode, syma, symb, symc, next  # self.symc = self.syma ^ self.symb
 not:     opcode, syma, symb,       next  # self.symb = ~self.syma
-lshift:  opcode, syma, symb, symc, next  # self.symc = self.syma << self.symb
-rshift:  opcode, syma, symb, symc, next  # self.symc = self.syma >> self.symb
 ulshift: opcode, syma, symb, symc, next  # self.symc = (unsigned)self.syma << self.symb
 urshift: opcode, syma, symb, symc, next  # self.symc = (unsigned)self.syma >> self.symb
 
@@ -34,6 +32,8 @@ neg:    opcode, syma, symb,       next  # self.symb = -self.syma
 mul:    opcode, syma, symb, symc, next  # self.symc = self.syma * self.symb
 div:    opcode, syma, symb, symc, next  # self.symc = self.syma / self.symb
 mod:    opcode, syma, symb, symc, next  # self.symc = self.syma % self.symb
+lshift:  opcode, syma, symb, symc, next  # self.symc = self.syma << self.symb
+rshift:  opcode, syma, symb, symc, next  # self.symc = self.syma >> self.symb
 
 itof:   opcode, syma, symb,       next  # self.symb = (float) self.syma
 itos:   opcode, syma, symb,       next  # self.symb = (symbol) self.syma
