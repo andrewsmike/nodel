@@ -191,7 +191,7 @@ int ndl_graph_del(ndl_graph *graph, ndl_ref node, ndl_sym key) {
     return ndl_node_pool_del(graph->pool, node, key);
 }
 
-#define NDL_ISHIDDEN(sym) (((char*)key)[0] == '\0')
+#define NDL_ISHIDDEN(sym) (((char*)&key)[0] == '\0')
 
 int ndl_graph_size(ndl_graph *graph, ndl_ref node) {
 
@@ -221,7 +221,7 @@ ndl_sym ndl_graph_index(ndl_graph *graph, ndl_ref node, int index) {
 
     for (int i = 0; i < count; i++) {
 
-        ndl_sym key = ndl_node_pool_get_key(graph->pool, node, index);
+        ndl_sym key = ndl_node_pool_get_key(graph->pool, node, i);
 
         if (!NDL_ISHIDDEN(key)) {
             if (sum == index)
@@ -233,7 +233,7 @@ ndl_sym ndl_graph_index(ndl_graph *graph, ndl_ref node, int index) {
     return NDL_NULL_SYM;
 }
 
-int ndl_graph_backref_count(ndl_graph *graph, ndl_ref node) {
+int ndl_graph_backref_size(ndl_graph *graph, ndl_ref node) {
 
     int count = ndl_node_pool_get_size(graph->pool, node);
 
@@ -256,7 +256,7 @@ ndl_ref ndl_graph_backref_index(ndl_graph *graph, ndl_ref node, int index) {
 
     for (int i = 0; i < count; i++) {
 
-        ndl_sym key = ndl_node_pool_get_key(graph->pool, node, index);
+        ndl_sym key = ndl_node_pool_get_key(graph->pool, node, i);
 
         if (NDL_ISBACKREF(key)) {
             if (index == 0)

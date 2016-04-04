@@ -36,7 +36,7 @@ void ndl_prettyprint_ref(ndl_ref value, int len, char *buff) {
 
     int filteroff = 7;
     uint32_t filter = 0xF0000000;
-    for (; !(filter & value); i++) {
+    for (; !(filter & value) && (i < len - 1); i++) {
         filter >>= 4;
         filteroff--;
         buff[i] = ' ';

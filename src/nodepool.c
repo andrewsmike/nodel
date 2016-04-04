@@ -83,13 +83,14 @@ int ndl_kv_node_depth(ndl_kv_node *node) {
 }
 ndl_sym ndl_kv_node_index(ndl_kv_node *node, int index) {
 
-    while (index-- > 0 && node != NULL)
+    while (index-- > 0 && node != NULL) {
         node = node->next;
+    }
 
-    if (node != NULL)
-        return node->key;
+    if (node == NULL)
+        return NDL_NULL_SYM;
 
-    return NDL_NULL_SYM;
+    return node->key;
 }
 
 ndl_node_pool *ndl_node_pool_init(void) {

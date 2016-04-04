@@ -2,6 +2,8 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+
 
 #include "node.h"
 #include "nodepool.h"
@@ -67,9 +69,94 @@ int testnodepool(void) {
     return 0;
 }
 
+void testgraphprintnode(ndl_graph *graph, ndl_ref node) {
+
+    int size = ndl_graph_size(graph, node);
+
+    printf("Pairs: %d.\n", size);
+
+    char symbuff[16];
+    symbuff[15] = '\0';
+
+    char valbuff[16];
+    valbuff[15] = '\0';
+
+    int i;
+    for (i = 0; i < size; i++) {
+        ndl_sym key = ndl_graph_index(graph, node, i);
+        ndl_value val = ndl_graph_get(graph, node, key);
+
+        ndl_value_to_string(NDL_VALUE(EVAL_SYM, sym=key), 15, symbuff);
+        ndl_value_to_string(val, 15, valbuff);
+
+        printf("(%s:%s)\n", symbuff, valbuff);
+    }
+
+    int count = ndl_graph_backref_size(graph, node);
+    printf("Backrefs: %d\n", count);
+
+    for (i = 0; i < count; i++) {
+        ndl_ref back = ndl_graph_backref_index(graph, node, i);
+        ndl_value_to_string(NDL_VALUE(EVAL_REF, ref=back), 15, valbuff);
+        printf("'%s'.\n", valbuff);
+    }
+}
+
+ndl_ref testgraphalloc(ndl_graph *graph) {
+
+    ndl_ref ret = ndl_graph_alloc(graph);
+
+    if (ret == NDL_NULL_REF) {
+        fprintf(stderr, "Failed to allocate graph node.\n");
+        exit(EXIT_FAILURE);
+    }
+
+    printf("Allocated node in graph. Id: %d.\n", ret);
+
+    return ret;
+}
+
+void testgraphaddedge(ndl_graph *graph, ndl_ref a, ndl_ref b, const char *name) {
+
+    int err = ndl_graph_set(graph, a, NDL_SYM(name), NDL_VALUE(EVAL_REF, ref=b));
+
+    if (err != 0) {
+        fprintf(stderr, "Failed to add edge\n");
+        exit(EXIT_FAILURE);
+    }
+}
+
 int testgraph(void) {
 
     printf("Testing graph.\n");
+
+    ndl_graph *graph = ndl_graph_init();
+
+    if (graph == NULL) {
+        fprintf(stderr, "Failed to allocate graph.\n");
+        return -1;
+    }
+
+    printf("Allocating nodes A, B, C, D, E.\n");
+    ndl_ref a = testgraphalloc(graph);
+    ndl_ref b = testgraphalloc(graph);
+    ndl_ref c = testgraphalloc(graph);
+    ndl_ref d = testgraphalloc(graph);
+    ndl_ref e = testgraphalloc(graph);
+
+    printf("Printing nodes A and B.\n");
+    testgraphprintnode(graph, a);
+    testgraphprintnode(graph, b);
+
+    printf("Adding edges a.b = b, b.c = c, c.a = a.\n");
+    testgraphaddedge(graph, a, b, "b       ");
+    testgraphaddedge(graph, b, c, "c       ");
+    testgraphaddedge(graph, c, a, "a       ");
+
+    printf("Printing node a.\n");
+    testgraphprintnode(graph, a);
+
+    ndl_graph_kill(graph);
 
     return 0;
 }

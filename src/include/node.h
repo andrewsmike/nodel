@@ -48,6 +48,7 @@ typedef double   ndl_float;
 #define NDL_NULL_SYM ((ndl_sym)  0)
 
 #define NDL_SYM(sym) *((uint64_t*) sym)
+#define NDL_DESYM(sym) ((char*) &sym)
 
 
 /* Actual value structure. */

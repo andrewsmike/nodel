@@ -8,6 +8,10 @@
  * Either O(1) or O(slots) for most operations.
  */
 
+/* TODO: Replace with old slab allocator for node IDs,
+ * growable open-addressing hashtables for kv pairs.
+ */
+
 typedef struct ndl_kv_node_s {
 
     struct ndl_kv_node_s *next;
