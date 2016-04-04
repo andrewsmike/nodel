@@ -16,18 +16,20 @@ SRC=src
 INC=src/include
 
 # Source and header files.
-SRC_OBJS=test node nodepool graph runtime eval
+SRC_OBJS=test node nodepool graph runtime eval opcodes
 INC_OBJS=     node          graph runtime eval
 
 OBJ_PATHS=$(addprefix $(SRC)/, $(addsuffix .o, $(SRC_OBJS)))
 SRC_PATHS=$(addprefix $(SRC)/, $(addsuffix .c, $(SRC_OBJS)))
 INC_PATHS=$(addprefix $(INC)/, $(addsuffix .h, $(INC_OBJS)))
 
+LIBS=m
 
 
 # Compiler flags.
 CCFLAGS=-I$(INC) -Wall -Wextra -Wno-unused-parameter -Wformat -Wpedantic -O2
 DEBUG=#-g -pg
+LIBFLAGS=$(addprefix -l, $(LIBS))
 
 # Default rule for compiling object files.
 %.o: %.c $(INC_PATHS)
@@ -35,7 +37,7 @@ DEBUG=#-g -pg
 
 # Rule for compiling main executable.
 nodel: $(OBJ_PATHS)
-	$(CC) $(DEBUG) $^ -o $@
+	$(CC) $(DEBUG) $(LIBFLAGS) $^ -o $@
 
 run: nodel
 	./nodel

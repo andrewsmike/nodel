@@ -5,8 +5,8 @@ load:   opcode, syma, symb, symc, next  # self.symc = self.syma.symb
 save:   opcode, syma, symb, symc, next  # self.symc.symb = self.syma
 drop:   opcode, syma, symb,       next  # clear(self.syma.symb)
 
-count:  opcode, syma,             next  # len(self.syma) (number of slots in node)
-iload:  opcode, syma, intb, symc, next  # self.symc = self.syma[intb]
+count:  opcode, syma, symb,       next  # self.symb = len(self.syma)
+iload:  opcode, syma, symb, symc, next  # self.symc = self.syma[self.symb]
 
 Floating point:
 fadd:   opcode, syma, symb, symc, next  # self.symc = (float) self.syma + self.symb
@@ -19,15 +19,17 @@ fsqrt:  opcode: syma, symb,       next  # self.symb = sqrt(self.syma)
 ftoi:   opcode, syma, symb,       next  # self.symb = (int) self.syma
 
 Integer:
-and:    opcode, syma, symb, symc, next  # self.symc = self.syma & self.symb
-or:     opcode, syma, symb, symc, next  # self.symc = self.syma | self.symb
-xor:    opcode, syma, symb, symc, next  # self.symc = self.syma ^ self.symb
-not:    opcode, syma, symb,       next  # self.symb = ~self.syma
-lshift: opcode, syma, symb, symc, next  # self.symc = self.syma << self.symb
-rshift: opcode, syma, symb, symc, next  # self.symc = self.syma >> self.symb
+and:     opcode, syma, symb, symc, next  # self.symc = self.syma & self.symb
+or:      opcode, syma, symb, symc, next  # self.symc = self.syma | self.symb
+xor:     opcode, syma, symb, symc, next  # self.symc = self.syma ^ self.symb
+not:     opcode, syma, symb,       next  # self.symb = ~self.syma
+lshift:  opcode, syma, symb, symc, next  # self.symc = self.syma << self.symb
+rshift:  opcode, syma, symb, symc, next  # self.symc = self.syma >> self.symb
+ulshift: opcode, syma, symb, symc, next  # self.symc = (unsigned)self.syma << self.symb
+urshift: opcode, syma, symb, symc, next  # self.symc = (unsigned)self.syma >> self.symb
 
 add:    opcode, syma, symb, symc, next  # self.symc = self.syma + self.symb
-sum:    opcode, syma, symb, symc, next  # self.symc = self.syma - self.symb
+sub:    opcode, syma, symb, symc, next  # self.symc = self.syma - self.symb
 neg:    opcode, syma, symb,       next  # self.symb = -self.syma
 mul:    opcode, syma, symb, symc, next  # self.symc = self.syma * self.symb
 div:    opcode, syma, symb, symc, next  # self.symc = self.syma / self.symb
