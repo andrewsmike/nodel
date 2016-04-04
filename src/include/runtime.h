@@ -1,0 +1,36 @@
+#ifndef NODEL_RUNTIME_H
+#define NODEL_RUNTIME_H
+
+#include "graph.h"
+
+typedef struct ndl_runtime_s ndl_runtime;
+
+/* Create and destroy a runtime.
+ * Runtimes encapsulate a node graph and a number of processes.
+ *
+ * init() Creates a new runtime.
+ * kill() frees all runtime resources and the given runtime.
+ */
+ndl_runtime *ndl_runtime_init(void);
+void         ndl_runtime_kill(ndl_runtime *runtime);
+
+/* Simulate processes for one or more steps.
+ * Improved debugging support is yet to come.
+ * Avoid step_proc(). It's O(n) to find your PID.
+ *
+ * step_proc() steps the process as pid forward a given number of steps.
+ * step() steps all processes forward a given number of steps.
+ */
+void         ndl_runtime_step_proc(ndl_runtime *runtime, int pid, int steps);
+void         ndl_runtime_step(ndl_runtime *runtime, int steps);
+
+/* Enumerate active processes.
+ * PID indices may change every step, this is unordered.
+ *
+ * proc_count() gets the number of active processes.
+ * get_pid() gets the PID of the Nth active process.
+ */
+int          ndl_runtime_proc_count(ndl_runtime *runtime);
+int          ndl_runtime_get_pid(ndl_runtime *runtime, int tmpindex);
+
+#endif /* NODEL_RUNTIME_H */

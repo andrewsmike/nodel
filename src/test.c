@@ -174,7 +174,7 @@ int testgraph(void) {
     ndl_graph_print(graph);
 
     ndl_graph_unmark(graph, a);
-    ndl_ref t = ndl_graph_salloc(graph, b, NDL_SYM("back    "));
+    ndl_graph_salloc(graph, b, NDL_SYM("back    "));
 
     ndl_graph_print(graph);
 

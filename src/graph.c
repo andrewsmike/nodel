@@ -108,7 +108,7 @@ void ndl_graph_clean(ndl_graph *graph) {
     /** TODO: clean */
 }
 
-int ndl_graph_add_backref(ndl_node_pool *pool, ndl_ref from, ndl_ref to) {
+static int ndl_graph_add_backref(ndl_node_pool *pool, ndl_ref from, ndl_ref to) {
 
     if (from == NDL_NULL_REF)
         return 0;
@@ -127,7 +127,7 @@ int ndl_graph_add_backref(ndl_node_pool *pool, ndl_ref from, ndl_ref to) {
     return ndl_node_pool_set(pool, from, NDL_BACKREF(to), value);
 }
 
-int ndl_graph_rm_backref(ndl_node_pool *pool, ndl_ref from, ndl_ref to) {
+static int ndl_graph_rm_backref(ndl_node_pool *pool, ndl_ref from, ndl_ref to) {
 
     if (from == NDL_NULL_REF)
         return 0;
