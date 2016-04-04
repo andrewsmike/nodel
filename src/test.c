@@ -278,6 +278,21 @@ int testruntime(void) {
 
     ndl_graph_print(graph);
 
+    printf("Testing GC and infinite loop.\n");
+    SET(i3, "next    ", EVAL_REF, ref=i0);
+    SET(local, "instpntr", EVAL_REF, ref=NDL_NULL_REF);
+    ndl_graph_clean(graph);
+    ndl_ref local2 = ndl_graph_salloc(graph, local, NDL_SYM("local2  "));
+    SET(local2, "instpntr", EVAL_REF, ref=i0);
+    ndl_graph_print(graph);
+
+    ndl_runtime_proc_init(runtime, local2);
+    printf("[%3d] Process started. Instruction@frame: %3d@%03d.\n", pid, i0, local);
+
+    ndl_runtime_step(runtime, 20);
+    ndl_runtime_print(runtime);
+    ndl_graph_print(graph);
+
 
     ndl_runtime_kill(runtime);
 
