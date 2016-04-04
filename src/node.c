@@ -19,7 +19,7 @@ const char *ndl_value_type_to_string[EVAL_SIZE] = {
 void ndl_prettyprint_none(int len, char *buff) {
 
     int i;
-    for (i = 0; i < len, i++)
+    for (i = 0; i < len; i++)
         buff[i] = ' ';
 }
 
@@ -34,17 +34,20 @@ void ndl_prettyprint_ref(ndl_ref value, int len, char *buff) {
         return;
     }
 
-    ndl_ref filter = 0xF0000000;
+    int filteroff = 7;
+    uint32_t filter = 0xF0000000;
     for (; !(filter & value); i++) {
         filter >>= 4;
+        filteroff--;
         buff[i] = ' ';
     }
 
     const char ascii[16] = "0123456789ABCDEF";
 
     for(; i < len; i++) {
-        buff[i] = ascii[(filter & value) >> (4 * (len - (i + 1)))];
+        buff[i] = ascii[(filter & value) >> (filteroff*4)];
         filter >>= 4;
+        filteroff--;
     }
 }
 
@@ -56,62 +59,68 @@ void ndl_prettyprint_sym(ndl_sym value, int len, char *buff) {
     for (i = 0; len - i > 8; i++)
         buff[i] = ' ';
 
-    for (; i < len; i++)
-        buff[i] = sym[i - len + 8];
-}
-
-void ndl_prettyprint_int(ndl_int value, int len, char *buff) {
-
-    if (value < 0) {
-
-        if (len >= 2) {
-            buff[0] = ' ';
-            buff[1] = '-';
-        }
-
-        ndl_prettyprint_int(-value, len-2, buff+2);
-
-        return;
+    for (; i < len; i++) {
+        char t = sym[i - len + 8];
+        if (t == '\0') t = '#';
+        buff[i] = t;
     }
-
-    char tbuff[PRETTYPRINT_BUFFSIZE];
-    snprintf(tbuff, PRETTYPRINT_BUFFSIZE, "%d", value);
-    int slen = strlen(tbuff);
-
-    if (slen > len) {
-        ndl_prettyprint_float((ndl_float) value, len, buff);
-        return;
-    }
-
-    int i;
-    for (i = 0; i < (len - slen); i++)
-        buff[i] = ' ';
-
-    for (; i < len; i++)
-        buff[i] = tbuff[i - len + slen];
 }
 
 int ndl_prettyprint_getmsd(ndl_float value) {
 
+    if (value < 0) {
 
+        int msd = 0;
+        double max = 10;
+        while (value > max) {
+            max *= 10;
+            msd++;
+        }
+
+        return msd;
+
+    } else {
+
+        int msd = -1;
+        double min = 0.1;
+        while (value < min) {
+            min *= 0.1;
+            msd--;
+        }
+
+        return msd;
+    }
 }
 
 void ndl_prettyprint_exp_float(ndl_float value, int len, char *buff) {
 
     /*           d.  ddd e+dd */
-    int prec = - 2 + len - 4;
+    /* int prec = - 2 + len - 4; */
 
     /* We need a max of two characters to express the precision. */
-    char format[6];
-    memcpy(format, "%e.\0\0", 6);
+    /*
+    char format[7];
+    memcpy(format, "%E2.\0\0", 7);
+    printf("%d\n", len);
 
     if (prec >= 10) {
-        format[3] = prec / 10 + '0';
-        format[4] = prec % 10 + '0';
-    } else
-        format[3] = prec + '0';
+        format[4] = (prec / 10) + '0';
+        format[5] = (prec % 10) + '0';
+    } else if (prec > 0) {
+        format[4] = prec + '0';
+    } else {
+        format[3] = '\0';
+    }
 
-    snprintf(buff, len, format, value);
+    char tbuff[PRETTYPRINT_BUFFSIZE];
+    snprintf(tbuff, len+1, format, value);
+    memcpy(buff, tbuff, len);
+
+    printf("%s: %s@%d\n", format, buff, len);
+    */
+    int i;
+    for (i = 0; i < len; i++)
+        buff[i] = '#';
 }
 
 void ndl_prettyprint_float(ndl_float value, int len, char *buff) {
@@ -141,6 +150,7 @@ void ndl_prettyprint_float(ndl_float value, int len, char *buff) {
 
     if (msd >= msdmax || msd < msdmin) {
         ndl_prettyprint_exp_float(value, len, buff);
+        return;
     }
 
     /* 00..000.000...00, starting from the MSB. */
@@ -169,7 +179,40 @@ void ndl_prettyprint_float(ndl_float value, int len, char *buff) {
         format[3+taken] = prec + '0';
     }
 
-    snprintf(buff, len, format, value);
+    char tbuff[PRETTYPRINT_BUFFSIZE];
+    snprintf(tbuff, len+1, format, value);
+    memcpy(buff, tbuff, len);
+}
+
+void ndl_prettyprint_int(ndl_int value, int len, char *buff) {
+
+    if (value < 0) {
+
+        if (len >= 2) {
+            buff[0] = ' ';
+            buff[1] = '-';
+        }
+
+        ndl_prettyprint_int(-value, len-2, buff+2);
+
+        return;
+    }
+
+    char tbuff[PRETTYPRINT_BUFFSIZE];
+    snprintf(tbuff, PRETTYPRINT_BUFFSIZE, "%d", (int) value);
+    int slen = strlen(tbuff);
+
+    if (slen > len) {
+        ndl_prettyprint_exp_float((ndl_float) value, len, buff);
+        return;
+    }
+
+    int i;
+    for (i = 0; i < (len - slen); i++)
+        buff[i] = ' ';
+
+    for (; i < len; i++)
+        buff[i] = tbuff[i - len + slen];
 }
 
 int ndl_value_to_string(ndl_value value, int len, char *buff) {
