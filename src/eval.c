@@ -11,7 +11,7 @@
 struct ndl_opcodes_s {
     ndl_eval_func opfunc;
     const char *opcode;
-} ndl_opcodes[46] = {
+} ndl_opcodes[47] = {
 
     /* Nodes and slots. */
     ADDOP(new,  "new     "),
@@ -57,48 +57,28 @@ struct ndl_opcodes_s {
     /* Symbol. */
     ADDOP(stoi, "stoi    "),
 
-    /* Cotrol. */
+    /* Control. */
     ADDOP(branch, "branch  "),
     ADDOP(push,   "push    "),
+
+    /* Temporary / debugging. */
+    ADDOP(print,  "print   "),
 };
-
-static int ndl_eval_cmp(const void *a, const void *b) {
-
-    const struct ndl_opcodes_s *as = a;
-    const struct ndl_opcodes_s *bs = b;
-
-    int64_t ap = NDL_SYM(as->opcode);
-    int64_t bp = NDL_SYM(bs->opcode);
-
-    if (ap < bp)
-        return -1;
-
-    if (ap > bp)
-        return 1;
-
-    return 0;
-}
 
 ndl_eval_func ndl_eval_lookup(ndl_sym opcode) {
 
-    struct ndl_opcodes_s key = {
-        .opfunc = NULL,
-        .opcode = (char*) &opcode,
-    };
+    int count = ndl_eval_size();
 
-    struct ndl_opcodes_s *t =
-        bsearch(&key, ndl_opcodes,
-                ndl_eval_size(), sizeof(struct ndl_opcodes_s),
-                &ndl_eval_cmp);
+    int i;
+    for (i = 0; i < count; i++)
+        if (NDL_SYM(ndl_opcodes[i].opcode) == opcode)
+            return ndl_opcodes[i].opfunc;
 
-    if (t == NULL)
-        return NULL;
-    else
-        return t->opfunc;
+    return NULL;
 }
 
 int ndl_eval_size(void) {
-    return 0;
+    return 47;
 }
 
 ndl_sym ndl_eval_index(int index) {

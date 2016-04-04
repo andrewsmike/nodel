@@ -2,7 +2,7 @@
 
 all_proxy: all
 
-VERSION=0.0.1
+VERSION=0.0.9
 
 # Toolchain programs.
 CC=gcc

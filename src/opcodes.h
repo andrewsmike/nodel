@@ -49,8 +49,11 @@ DEFOP(itos);
 /* Symbol. */
 DEFOP(stoi);
 
-/* Cotrol. */
+/* Control. */
 DEFOP(branch);
 DEFOP(push);
+
+/* Temporary / debugging. */
+DEFOP(print);
 
 #endif /* NODEL_OPCODES_H */

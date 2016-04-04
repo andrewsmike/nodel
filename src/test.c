@@ -6,8 +6,8 @@
 
 
 #include "node.h"
-#include "nodepool.h"
 #include "graph.h"
+#include "runtime.h"
 
 int testprettyprint(void) {
 
@@ -53,22 +53,6 @@ int testprettyprint(void) {
     return 0;
 }
 
-int testnodepool(void) {
-
-    printf("Testing nodepool.\n");
-
-    ndl_node_pool *pool = ndl_node_pool_init();
-
-    if (pool == NULL) {
-        fprintf(stderr, "Failed to allocate node pool.\n");
-        return -1;
-    }
-
-    ndl_node_pool_kill(pool);
-
-    return 0;
-}
-
 void testgraphprintnode(ndl_graph *graph, ndl_ref node) {
 
     int size = ndl_graph_size(graph, node);
@@ -110,8 +94,6 @@ ndl_ref testgraphalloc(ndl_graph *graph) {
         fprintf(stderr, "Failed to allocate graph node.\n");
         exit(EXIT_FAILURE);
     }
-
-    printf("Allocated node in graph. Id: %d.\n", ret);
 
     return ret;
 }
@@ -180,6 +162,125 @@ int testgraph(void) {
 
     ndl_graph_kill(graph);
 
+    graph = ndl_graph_init();
+
+    if (graph == NULL) {
+        fprintf(stderr, "Failed to allocate graph.\n");
+        return -1;
+    }
+
+    a = testgraphalloc(graph);
+    b = testgraphalloc(graph);
+    c = testgraphalloc(graph);
+    testgraphaddedge(graph, a, b, "next    ");
+
+    ndl_ref d = ndl_graph_salloc(graph, b, NDL_SYM("next    "));
+    ndl_ref e = ndl_graph_salloc(graph, d, NDL_SYM("next    "));
+
+    ndl_ref f = ndl_graph_salloc(graph, e, NDL_SYM("next    "));
+    ndl_ref g = ndl_graph_salloc(graph, f, NDL_SYM("next    "));
+    ndl_ref h = ndl_graph_salloc(graph, g, NDL_SYM("next    "));
+    testgraphaddedge(graph, h, f, "next    ");
+    testgraphaddedge(graph, h, a, "root    ");
+
+    printf("Testing GC.\n");
+    ndl_graph_print(graph);
+
+    ndl_graph_clean(graph);
+
+    printf("Post GC.\n");
+    ndl_graph_print(graph);
+
+    testgraphdeledge(graph, e, "next    ");
+
+    printf("Pre GC.\n");
+    ndl_graph_print(graph);
+
+    ndl_graph_clean(graph);
+
+    printf("Post GC.\n");
+    ndl_graph_print(graph);
+
+    ndl_graph_unmark(graph, a);
+    ndl_graph_clean(graph);
+    printf("Unmarking a as root node.\n");
+    ndl_graph_print(graph);
+
+    ndl_graph_unmark(graph, b);
+    ndl_graph_mark(graph, e);
+    ndl_graph_clean(graph);
+    printf("Unmarking b as root node and marking e.\n");
+    ndl_graph_print(graph);
+
+    ndl_graph_kill(graph);
+
+    return 0;
+}
+
+#define SET(node, key, type, val) \
+    ndl_graph_set(graph, node, NDL_SYM(key), NDL_VALUE(type, val))
+
+int testruntime(void) {
+
+    printf("Beginning runtime tests.\n");
+
+    ndl_runtime *runtime = ndl_runtime_init();
+
+    if (runtime == NULL) {
+        fprintf(stderr, "Failed to allocate runtime.\n");
+        exit(EXIT_FAILURE);
+    }
+
+    ndl_graph *graph = ndl_runtime_graph(runtime);
+
+    ndl_ref i0 = testgraphalloc(graph);
+    ndl_ref i1 = ndl_graph_salloc(graph, i0, NDL_SYM("next    "));
+    ndl_ref i2 = ndl_graph_salloc(graph, i1, NDL_SYM("next    "));
+    ndl_ref i3 = ndl_graph_salloc(graph, i2, NDL_SYM("next    "));
+    ndl_ref i4 = ndl_graph_salloc(graph, i3, NDL_SYM("next    "));
+    ndl_ref i5 = ndl_graph_salloc(graph, i4, NDL_SYM("next    "));
+    ndl_ref i6 = ndl_graph_salloc(graph, i5, NDL_SYM("next    "));
+    ndl_graph_salloc(graph, i6, NDL_SYM("next    "));
+    SET(i0, "opcode  ", EVAL_SYM, sym=NDL_SYM("load    "));
+    SET(i0, "syma    ", EVAL_SYM, sym=NDL_SYM("instpntr"));
+    SET(i0, "symb    ", EVAL_SYM, sym=NDL_SYM("const   "));
+    SET(i0, "symc    ", EVAL_SYM, sym=NDL_SYM("a       "));
+    SET(i0, "const   ", EVAL_INT, num=2);
+
+    SET(i1, "opcode  ", EVAL_SYM, sym=NDL_SYM("load    "));
+    SET(i1, "syma    ", EVAL_SYM, sym=NDL_SYM("instpntr"));
+    SET(i1, "symb    ", EVAL_SYM, sym=NDL_SYM("const   "));
+    SET(i1, "symc    ", EVAL_SYM, sym=NDL_SYM("b       "));
+    SET(i1, "const   ", EVAL_INT, num=2);
+
+    SET(i2, "opcode  ", EVAL_SYM, sym=NDL_SYM("add     "));
+    SET(i2, "syma    ", EVAL_SYM, sym=NDL_SYM("a       "));
+    SET(i2, "symb    ", EVAL_SYM, sym=NDL_SYM("b       "));
+    SET(i2, "symc    ", EVAL_SYM, sym=NDL_SYM("c       "));
+
+    SET(i3, "opcode  ", EVAL_SYM, sym=NDL_SYM("print   "));
+    SET(i3, "syma    ", EVAL_SYM, sym=NDL_SYM("c       "));
+
+    ndl_ref local = testgraphalloc(graph);
+    SET(local, "instpntr", EVAL_REF, ref=i0);
+
+    int pid = ndl_runtime_proc_init(runtime, local);
+
+    printf("[%3d] Process started. Instruction@frame: %3d@%03d.\n", pid, i0, local);
+
+    ndl_runtime_print(runtime);
+
+    ndl_runtime_step(runtime, 1); ndl_runtime_print(runtime);
+    ndl_runtime_step(runtime, 1); ndl_runtime_print(runtime);
+    ndl_runtime_step(runtime, 1); ndl_runtime_print(runtime);
+    ndl_runtime_step(runtime, 1); ndl_runtime_print(runtime);
+    ndl_runtime_step(runtime, 1); ndl_runtime_print(runtime);
+
+    ndl_graph_print(graph);
+
+
+    ndl_runtime_kill(runtime);
+
     return 0;
 }
 
@@ -189,8 +290,8 @@ int main(int argc, const char *argv[]) {
 
     int err;
     err  = testprettyprint();
-    err |= testnodepool();
-    err |= testgraph();
+    //err |= testgraph();
+    err |= testruntime();
 
     printf("Finished tests.\n");
 

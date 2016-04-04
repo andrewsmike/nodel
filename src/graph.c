@@ -103,9 +103,40 @@ ndl_ref ndl_graph_salloc(ndl_graph *graph, ndl_ref base, ndl_sym key) {
     return ret;
 }
 
-void ndl_graph_clean(ndl_graph *graph) {
+#define NDL_ISHIDDEN(sym) (((char*)&key)[0] == '\0')
 
-    /** TODO: clean */
+static void ndl_graph_clean_mark(ndl_graph *graph, ndl_ref root, int sweep) {
+
+    ndl_value gcsweep = ndl_node_pool_get(graph->pool, root, NDL_SYM("\0gcsweep"));
+    if (gcsweep.type != EVAL_INT)
+        return;
+
+    if (gcsweep.num < 0 && (sweep >= 0))
+        return;
+
+    sweep = (sweep < 0)? -sweep : sweep; 
+
+    if (gcsweep.num >= sweep)
+        return;
+
+    if (gcsweep.num >= 0) {
+
+        gcsweep.num = sweep;
+
+        ndl_node_pool_set(graph->pool, root, NDL_SYM("\0gcsweep"), gcsweep);
+    }
+
+    int count = ndl_node_pool_get_size(graph->pool, root);
+
+    for (int i = 0; i < count; i++) {
+        ndl_sym key = ndl_node_pool_get_key(graph->pool, root, i);
+        if (!NDL_ISHIDDEN(key)) {
+
+            ndl_value next = ndl_node_pool_get(graph->pool, root, key);
+            if (next.type == EVAL_REF && next.ref != NDL_NULL_REF)
+                ndl_graph_clean_mark(graph, next.ref, sweep);
+        }
+    }
 }
 
 static int ndl_graph_add_backref(ndl_node_pool *pool, ndl_ref from, ndl_ref to) {
@@ -150,6 +181,51 @@ static int ndl_graph_rm_backref(ndl_node_pool *pool, ndl_ref from, ndl_ref to) {
     return ndl_node_pool_set(pool, from, NDL_BACKREF(to), value);
 }
 
+static void ndl_graph_clean_remove(ndl_graph *graph, ndl_ref node) {
+
+    int count = ndl_node_pool_get_size(graph->pool, node);
+
+    for (int i = 0; i < count; i++) {
+
+        ndl_sym key = ndl_node_pool_get_key(graph->pool, node, i);
+
+        if (!NDL_ISHIDDEN(key)) {
+            ndl_value val = ndl_node_pool_get(graph->pool, node, key);
+            if ((val.type == EVAL_REF) && (val.ref != NDL_NULL_REF))
+                ndl_graph_rm_backref(graph->pool, val.ref, node);
+        }
+    }
+
+    ndl_node_pool_free(graph->pool, node);
+}
+
+void ndl_graph_clean(ndl_graph *graph) {
+
+    int sweep = ++graph->sweep;
+
+    int i;
+    for (i = 0; i < NDL_MAX_NODES; i++) {
+
+        ndl_value gcsweep = ndl_node_pool_get(graph->pool, (ndl_ref) i, NDL_SYM("\0gcsweep"));
+
+        if ((gcsweep.type == EVAL_INT) && (gcsweep.num == -1))
+            ndl_graph_clean_mark(graph, (ndl_ref) i, -sweep);
+    }
+
+    for (i = 0; i < NDL_MAX_NODES; i++) {
+
+        ndl_value gcsweep = ndl_node_pool_get(graph->pool, (ndl_ref) i, NDL_SYM("\0gcsweep"));
+
+        if (gcsweep.type != EVAL_INT)
+            continue;
+
+        if ((gcsweep.num == -1) || (gcsweep.num >= sweep))
+            continue;
+
+        ndl_graph_clean_remove(graph, (ndl_ref) i);
+    }
+}
+
 int ndl_graph_set(ndl_graph *graph, ndl_ref node, ndl_sym key, ndl_value value) {
 
     if (node == NDL_NULL_REF)
@@ -190,8 +266,6 @@ int ndl_graph_del(ndl_graph *graph, ndl_ref node, ndl_sym key) {
 
     return ndl_node_pool_del(graph->pool, node, key);
 }
-
-#define NDL_ISHIDDEN(sym) (((char*)&key)[0] == '\0')
 
 int ndl_graph_size(ndl_graph *graph, ndl_ref node) {
 

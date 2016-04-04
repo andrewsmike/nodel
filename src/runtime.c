@@ -19,6 +19,7 @@ struct ndl_runtime_s {
     ndl_graph *graph;
 
     int proccount;
+    int nextpid;
     struct ndl_process_s procs[NDL_MAX_PROCS];
 };
 
@@ -37,6 +38,31 @@ ndl_runtime *ndl_runtime_init(void) {
     }
 
     ret->proccount = 0;
+    ret->nextpid = 0;
+
+    int i;
+    for (i = 0; i < NDL_MAX_PROCS; i++)
+        ret->procs[i] = (ndl_process) {.pid = -1, .local = NDL_NULL_REF};
+
+    return ret;
+}
+
+ndl_runtime *ndl_runtime_init_with(ndl_graph *graph) {
+
+    ndl_runtime *ret = malloc(sizeof(ndl_runtime));
+
+    if (ret == NULL)
+        return NULL;
+
+    ret->graph = graph;
+
+    if (ret->graph == NULL) {
+        free(ret);
+        return NULL;
+    }
+
+    ret->proccount = 0;
+    ret->nextpid = 0;
 
     int i;
     for (i = 0; i < NDL_MAX_PROCS; i++)
@@ -56,6 +82,47 @@ void ndl_runtime_kill(ndl_runtime *runtime) {
     free(runtime);
 }
 
+ndl_graph *ndl_runtime_graph(ndl_runtime *runtime) {
+    return runtime->graph;
+}
+
+int ndl_runtime_proc_init(ndl_runtime *runtime, ndl_ref local) {
+
+    if (local == NDL_NULL_REF)
+        return -1;
+
+    int slot = runtime->proccount;
+
+    if (runtime->proccount >= NDL_MAX_PROCS - 1)
+        return -1;
+
+    runtime->proccount++;
+    int pid = runtime->nextpid++;
+    runtime->procs[slot].pid = pid;
+    runtime->procs[slot].local = local;
+
+    return 0;
+}
+
+int ndl_runtime_proc_kill(ndl_runtime *runtime, int pid) {
+
+    int count = runtime->proccount;
+
+    int i;
+    for (i = 0; i < count; i++) {
+
+        if (runtime->procs[i].pid == pid) {
+
+            runtime->procs[i] = runtime->procs[count - 1];
+            runtime->procs[count-1] = (struct ndl_process_s) {.pid = -1, .local = NDL_NULL_REF };
+            runtime->proccount--;
+            return 0;
+        }
+    }
+
+    return -1;
+}
+
 static void ndl_runtime_tick(ndl_runtime *runtime, int index) {
 
     ndl_ref local = runtime->procs[index].local;
@@ -72,10 +139,10 @@ static void ndl_runtime_tick(ndl_runtime *runtime, int index) {
     }
 
     int count = runtime->proccount;
-    if (count > 1)
-        runtime->procs[index] = runtime->procs[count - 1];
 
-    runtime->procs[count - 1] = (ndl_process) {.pid=-1, .local = NDL_NULL_REF};
+    runtime->procs[index] = runtime->procs[count - 1];
+    runtime->procs[count - 1] = (struct ndl_process_s) {.pid=-1, .local = NDL_NULL_REF};
+    runtime->proccount--;
 }
 
 void ndl_runtime_step_proc(ndl_runtime *runtime, int pid, int steps) {
@@ -108,4 +175,21 @@ int ndl_runtime_proc_count(ndl_runtime *runtime) {
 
 int ndl_runtime_get_pid(ndl_runtime *runtime, int tmpindex) {
     return runtime->procs[tmpindex].pid;
+}
+
+#include <stdio.h>
+
+void ndl_runtime_print(ndl_runtime *runtime) {
+
+    printf("Printing runtime.\n");
+
+    int i;
+    for (i = 0; i < runtime->proccount; i++) {
+
+        ndl_value pc = ndl_graph_get(runtime->graph,
+                                     runtime->procs[i].local,
+                                     NDL_SYM("instpntr"));
+        printf("[%3d] Current instruction@frame: %3d@%03d.\n",
+               runtime->procs[i].pid, pc.ref, runtime->procs[i].local);
+    }
 }

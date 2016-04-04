@@ -67,11 +67,11 @@
             return NDL_NULL_REF;                   \
     } while (0)
 
-#define ADVANCE                              \
-    do {                                     \
-        LOADREF(pc, next, DS("next    "));   \
-        STORE(local, next, DS("instrpntr")); \
-        return local;                        \
+#define ADVANCE                             \
+    do {                                    \
+        LOADREF(pc, next, DS("next    "));  \
+        STORE(local, next, DS("instpntr")); \
+        return local;                       \
     } while (0)
 
 #define DS(name) NDL_SYM(name)
@@ -296,4 +296,22 @@ BEGINOP(push) {
     LOADREF(local, invoke, syma.sym);
 
     return invoke.ref;
+}
+
+#include <stdio.h>
+
+/* Temporary. */
+BEGINOP(print) {
+    LOADSYMA;
+
+    NTLOAD(local, val, syma.sym);
+
+    char buff[16];
+    buff[15] = '\0';
+
+    ndl_value_to_string(val, 15, buff);
+
+    printf("[%03d@%03d]: %s.\n", pc, local, buff);
+
+    ADVANCE;
 }
