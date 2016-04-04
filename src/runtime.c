@@ -1,4 +1,5 @@
 #include "runtime.h"
+#include "eval.h"
 
 #include <stdlib.h>
 
@@ -55,11 +56,6 @@ void ndl_runtime_kill(ndl_runtime *runtime) {
     free(runtime);
 }
 
-/* TODO: Eval. */
-ndl_ref ndl_eval(ndl_graph *graph, ndl_ref local) {
-    return local;
-}
-
 static void ndl_runtime_tick(ndl_runtime *runtime, int index) {
 
     ndl_ref local = runtime->procs[index].local;
@@ -67,8 +63,13 @@ static void ndl_runtime_tick(ndl_runtime *runtime, int index) {
 
     ndl_ref next = ndl_eval(graph, local);
 
-    if (next != NDL_NULL_REF)
+    if (next == local)
         return;
+
+    if (next != NDL_NULL_REF) {
+        runtime->procs[index].local = next;
+        return;
+    }
 
     int count = runtime->proccount;
     if (count > 1)
