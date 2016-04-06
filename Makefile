@@ -16,7 +16,7 @@ SRC=src
 INC=src/include
 
 # Source and header files.
-SRC_OBJS=test node graph runtime asm nodepool eval opcodes
+SRC_OBJS=test node graph runtime asm slab nodepool eval opcodes
 INC_OBJS=     node graph runtime asm
 
 OBJ_PATHS=$(addprefix $(SRC)/, $(addsuffix .o, $(SRC_OBJS)))
