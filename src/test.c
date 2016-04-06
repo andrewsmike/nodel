@@ -8,6 +8,7 @@
 #include "node.h"
 #include "graph.h"
 #include "runtime.h"
+#include "slab.h"
 
 int testprettyprint(void) {
 
@@ -299,6 +300,79 @@ int testruntime(void) {
     return 0;
 }
 
+typedef struct kv_pair_s {
+
+    uint8_t key[8];
+    uint64_t value;
+} kv_pair;
+
+int testslab(void) {
+
+    printf("Beginning slab tests.\n");
+
+    ndl_slab *slab = ndl_slab_init(sizeof(kv_pair), NDL_NULL_INDEX);
+
+    if (slab == NULL) {
+        fprintf(stderr, "Failed to allocate slab.\n");
+        exit(EXIT_FAILURE);
+    }
+
+    printf("Slab (used+unused)/size: (%ld+%ld)/%ld.\n",
+           ndl_slab_elem_count(slab),
+           ndl_slab_free_count(slab),
+           ndl_slab_size(slab));
+
+    ndl_slab_index a = ndl_slab_head(slab);
+    ndl_slab_index b = ndl_slab_next(slab, a);
+    printf("Slab head, next: %ld, %ld.\n", a, b);
+
+    ndl_slab_index c = ndl_slab_alloc(slab);
+    a = ndl_slab_head(slab);
+    b = ndl_slab_next(slab, a);
+    printf("Allocated, head, next: %ld, %ld, %ld.\n", c, a, b);
+
+    ndl_slab_index d = ndl_slab_alloc(slab);
+    kv_pair *kva = ndl_slab_get(slab, c);
+    kv_pair *kvb = ndl_slab_get(slab, d);
+    printf("Allocated location: %p, %p.\n", (void *) kva, (void *) kvb);
+
+    printf("Allocating 4ki nodes.\n");
+    uint64_t i;
+    for (i = 0; i < 4096; i++)
+        ndl_slab_alloc(slab);
+
+    printf("Freeing node.\n");
+    ndl_slab_free(slab, d);
+
+    printf("Slab (used+unused)/size: (%ld+%ld)/%ld.\n",
+           ndl_slab_elem_count(slab),
+           ndl_slab_free_count(slab),
+           ndl_slab_size(slab));
+    printf("Got %ld after freeing %ld.\n", ndl_slab_alloc(slab), d);
+
+    printf("Freeing 4k nodes.\n");
+    for (i = 0; i < 4000; i++)
+        ndl_slab_free(slab, i + 10);
+    printf("Slab (used+unused)/size: (%ld+%ld)/%ld.\n",
+           ndl_slab_elem_count(slab),
+           ndl_slab_free_count(slab),
+           ndl_slab_size(slab));
+
+    printf("Allocating 2k nodes.\n");
+    for (i = 0; i < 4096; i++)
+        ndl_slab_alloc(slab);
+
+        printf("Slab (used+unused)/size: (%ld+%ld)/%ld.\n",
+           ndl_slab_elem_count(slab),
+           ndl_slab_free_count(slab),
+           ndl_slab_size(slab));
+
+    ndl_slab_kill(slab);
+
+    return 0;
+}
+
+
 int main(int argc, const char *argv[]) {
 
     printf("Beginning tests.\n");
@@ -306,7 +380,8 @@ int main(int argc, const char *argv[]) {
     int err;
     err  = testprettyprint();
     //err |= testgraph();
-    err |= testruntime();
+    //err |= testruntime();
+    err |= testslab();
 
     printf("Finished tests.\n");
 

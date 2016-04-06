@@ -36,7 +36,7 @@ ndl_slab *ndl_slab_init(uint64_t elem_size, uint64_t block_size) {
     slab->block_cap = 0;
     slab->elem_count = 0;
 
-    slab->free_head = NDL_NULL_INDEX;
+    slab->free_head = 0;
 
     slab->blocks = NULL;
 
@@ -66,7 +66,7 @@ static inline void ndl_slab_grow(ndl_slab *slab) {
 
         uint64_t nsize = max(8, slab->block_count << 1);
 
-        void *nblocks = realloc(slab->blocks, nsize);
+        void *nblocks = realloc(slab->blocks, nsize * sizeof(ndl_slab_block*));
         if (nblocks == NULL)
             return;
 
@@ -94,11 +94,6 @@ static inline void ndl_slab_grow(ndl_slab *slab) {
         curr = (ndl_slab_item *) (((uint8_t *) curr) + item_size);
     }
 
-    curr = (ndl_slab_item *) (((uint8_t *) nblock) + (item_size * (slab->block_size - 1)));
-
-    curr->next_free = slab->free_head;
-    slab->free_head = base_index;
-
     return;
 }
 
@@ -107,17 +102,24 @@ ndl_slab_index ndl_slab_alloc(ndl_slab *slab) {
     if (slab == NULL)
         return NDL_NULL_INDEX;
 
-    if (slab->free_head == NDL_NULL_INDEX)
+    uint64_t block_count = slab->block_count;
+    uint64_t size = slab->block_size * block_count;
+
+    if (slab->free_head == size) {
+
         ndl_slab_grow(slab);
 
-    if (slab->free_head == NDL_NULL_INDEX)
-        return NDL_NULL_INDEX;
+        if (slab->block_count == block_count)
+            return NDL_NULL_INDEX;
+    }
 
     ndl_slab_index curr = slab->free_head;
-    ndl_slab_item *elem = ndl_slab_get_item(slab, slab->free_head);
+    ndl_slab_item *elem = ndl_slab_get_item(slab, curr);
 
     slab->free_head = elem->next_free;
     elem->next_free = NDL_NULL_INDEX;
+
+    slab->elem_count ++;
 
     return curr;
 }

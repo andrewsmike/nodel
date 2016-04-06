@@ -18,6 +18,7 @@
 
 /* Each allocated item has a slot for storing a next reference.
  * The slab system keeps all free blocks on a linked list for quick allocation.
+ * The last element has a reference to blocksize*blockcount.
  * The reference is NDL_NULL_INDEX when unallocated.
  * The data is arbitrarily sized. Use ((struct my_struct *) item.data).
  */
