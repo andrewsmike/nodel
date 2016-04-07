@@ -80,7 +80,7 @@ static inline void ndl_slab_grow(ndl_slab *slab) {
     if (nblock == NULL)
         return;
 
-    int blockind = slab->block_count++;
+    uint64_t blockind = slab->block_count++;
     slab->blocks[blockind] = nblock;
 
     uint64_t base_index = blockind * slab->block_size;

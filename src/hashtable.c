@@ -3,6 +3,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <stdio.h>
+
 ndl_hashtable *ndl_hashtable_init(uint64_t key_size, uint64_t val_size, uint64_t capacity) {
 
     ndl_hashtable *table = malloc(ndl_hashtable_msize(key_size, val_size, capacity));
@@ -131,10 +133,11 @@ void *ndl_hashtable_put(ndl_hashtable *table, void *key, void *value) {
     do {
 
         uint8_t *currkey = ((uint8_t *) curr) + sizeof(ndl_hashtable_bucket);
-        uint8_t *currval = currval + table->key_size;
+        uint8_t *currval = currkey + table->key_size;
 
         if (curr->marker == 0) {
             curr->marker = 1;
+            table->size++;
             memcpy(currkey, key, table->key_size);
             return memcpy(currval, value, table->val_size);
         }
@@ -164,6 +167,7 @@ int ndl_hashtable_del(ndl_hashtable *table, void *key) {
     ndl_hashtable_bucket *bucket = (ndl_hashtable_bucket *) (val - sizeof(ndl_hashtable_bucket) - table->key_size);
 
     bucket->marker = -1;
+    table->size--;
 
     return 0;
 }
@@ -237,7 +241,7 @@ void *ndl_hashtable_valnext(ndl_hashtable *table, void *last) {
     return ((uint8_t *) nextbucket) + sizeof(ndl_hashtable_bucket) + table->key_size;
 }
 
-uint64_t ndl_hashtable_cap (ndl_hashtable *table) {
+uint64_t ndl_hashtable_cap(ndl_hashtable *table) {
 
     return table->capacity;
 }
@@ -245,4 +249,21 @@ uint64_t ndl_hashtable_cap (ndl_hashtable *table) {
 uint64_t ndl_hashtable_size(ndl_hashtable *table) {
 
     return table->size;
+}
+
+void ndl_hashtable_print(ndl_hashtable *table) {
+
+    printf("Printing hashtable.\n");
+    printf("Key, val, cap: %ld:%ld x %ld.\n", table->key_size, table->val_size, table->capacity);
+    printf("Usage: %ld / %ld.\n", table->size, table->capacity);
+
+    uint8_t *base = (uint8_t *) table->data;
+    uint64_t bucketsize = sizeof(ndl_hashtable_bucket) + table->key_size + table->val_size;
+
+    uint64_t i;
+    for (i = 0; i < table->capacity; i++) {
+
+        ndl_hashtable_bucket *bucket = (ndl_hashtable_bucket *) (base + (bucketsize * i));
+        printf("[%3d]\n", bucket->marker);
+    }
 }

@@ -17,10 +17,14 @@
  * a key, you must search until either key is found, a
  * bucket with marker=0 is found, or you loop the entire
  * list.
+ *
+ * TODO: Rearrange such that markers, keys, and vals are
+ * groups by type, not by index. Will simplify math and
+ * make cleaner.
  */
 typedef struct ndl_hashtable_bucket_s {
 
-    uint8_t marker;
+    int32_t marker;
     uint8_t data[];
 
 } ndl_hashtable_bucket;
@@ -93,5 +97,8 @@ void *ndl_hashtable_valnext(ndl_hashtable *table, void *last);
  */
 uint64_t ndl_hashtable_cap (ndl_hashtable *table);
 uint64_t ndl_hashtable_size(ndl_hashtable *table);
+
+/* Print entirety of a hashtable. */
+void ndl_hashtable_print(ndl_hashtable *table);
 
 #endif /* NODEL_HASHTABLE_H */

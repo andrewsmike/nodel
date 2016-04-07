@@ -1,3 +1,4 @@
+#include "opcodes.h"
 #include "eval.h"
 
 #include <math.h>
@@ -136,7 +137,7 @@ BEGINOP(count) {
     LOADSYMAB;
 
     LOADREF(local, sec, syma.sym);
-    int size = ndl_graph_size(graph, sec.ref);
+    int64_t size = ndl_graph_size(graph, sec.ref);
     STORE(local, NDL_VALUE(EVAL_INT, num=size), symb.sym);
 
     ADVANCE;
@@ -148,7 +149,7 @@ BEGINOP(iload) {
     LOADREF(local, sec, syma.sym);
     LOAD(local, i, symb.sym, EVAL_INT);
     ndl_sym key = ndl_graph_index(graph, sec.ref, i.num);
-    STORE(local, NDL_VALUE(EVAL_REF, ref=key), symc.sym);
+    STORE(local, NDL_VALUE(EVAL_SYM, sym=key), symc.sym);
 
     ADVANCE;
 }
@@ -210,8 +211,8 @@ TWOARGINTOP(xor, a.num ^ b.num)
 ONEARGINTOP(not, ~a.num)
 TWOARGINTOP(lshift, a.num << b.num)
 TWOARGINTOP(rshift, a.num >> b.num)
-TWOARGINTOP(ulshift, ((uint64_t) a.num) << b.num)
-TWOARGINTOP(urshift, ((uint64_t) a.num) >> b.num)
+TWOARGINTOP(ulshift, (int64_t) (((uint64_t) a.num) << b.num))
+TWOARGINTOP(urshift, (int64_t) (((uint64_t) a.num) >> b.num))
 
 TWOARGINTOP(add, a.num + b.num)
 TWOARGINTOP(sub, a.num - b.num)

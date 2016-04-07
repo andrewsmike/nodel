@@ -9,8 +9,9 @@
 #include "graph.h"
 #include "runtime.h"
 #include "slab.h"
+#include "hashtable.h"
 
-int testprettyprint(void) {
+static int testprettyprint(void) {
 
     printf("Testing value pretty printing.\n");
 
@@ -54,40 +55,7 @@ int testprettyprint(void) {
     return 0;
 }
 
-void testgraphprintnode(ndl_graph *graph, ndl_ref node) {
-
-    int size = ndl_graph_size(graph, node);
-
-    printf("Pairs: %d.\n", size);
-
-    char symbuff[16];
-    symbuff[15] = '\0';
-
-    char valbuff[16];
-    valbuff[15] = '\0';
-
-    int i;
-    for (i = 0; i < size; i++) {
-        ndl_sym key = ndl_graph_index(graph, node, i);
-        ndl_value val = ndl_graph_get(graph, node, key);
-
-        ndl_value_to_string(NDL_VALUE(EVAL_SYM, sym=key), 15, symbuff);
-        ndl_value_to_string(val, 15, valbuff);
-
-        printf("(%s:%s)\n", symbuff, valbuff);
-    }
-
-    int count = ndl_graph_backref_size(graph, node);
-    printf("Backrefs: %d\n", count);
-
-    for (i = 0; i < count; i++) {
-        ndl_ref back = ndl_graph_backref_index(graph, node, i);
-        ndl_value_to_string(NDL_VALUE(EVAL_REF, ref=back), 15, valbuff);
-        printf("'%s'.\n", valbuff);
-    }
-}
-
-ndl_ref testgraphalloc(ndl_graph *graph) {
+static ndl_ref testgraphalloc(ndl_graph *graph) {
 
     ndl_ref ret = ndl_graph_alloc(graph);
 
@@ -99,7 +67,7 @@ ndl_ref testgraphalloc(ndl_graph *graph) {
     return ret;
 }
 
-void testgraphaddedge(ndl_graph *graph, ndl_ref a, ndl_ref b, const char *name) {
+static void testgraphaddedge(ndl_graph *graph, ndl_ref a, ndl_ref b, const char *name) {
 
     int err = ndl_graph_set(graph, a, NDL_SYM(name), NDL_VALUE(EVAL_REF, ref=b));
 
@@ -109,7 +77,7 @@ void testgraphaddedge(ndl_graph *graph, ndl_ref a, ndl_ref b, const char *name) 
     }
 }
 
-void testgraphdeledge(ndl_graph *graph, ndl_ref a, const char *name) {
+static void testgraphdeledge(ndl_graph *graph, ndl_ref a, const char *name) {
 
     int err = ndl_graph_del(graph, a, NDL_SYM(name));
 
@@ -119,7 +87,7 @@ void testgraphdeledge(ndl_graph *graph, ndl_ref a, const char *name) {
     }
 }
 
-int testgraph(void) {
+static int testgraph(void) {
 
     printf("Testing graph.\n");
 
@@ -221,7 +189,7 @@ int testgraph(void) {
 #define SET(node, key, type, val) \
     ndl_graph_set(graph, node, NDL_SYM(key), NDL_VALUE(type, val))
 
-int testruntime(void) {
+static int testruntime(void) {
 
     printf("Beginning runtime tests.\n");
 
@@ -306,7 +274,7 @@ typedef struct kv_pair_s {
     uint64_t value;
 } kv_pair;
 
-int testslab(void) {
+static int testslab(void) {
 
     printf("Beginning slab tests.\n");
 
@@ -372,6 +340,52 @@ int testslab(void) {
     return 0;
 }
 
+static int testhashtable(void) {
+
+    printf("Beginning hashtable tests.\n");
+
+    ndl_hashtable *table = ndl_hashtable_init(sizeof(int), sizeof(int), 8);
+    ndl_hashtable_print(table);
+
+    printf("Size needed by int->int 16 slot hashtable: %ld.\n",
+           ndl_hashtable_msize(sizeof(int), sizeof(int), 16));
+
+    printf("First key in hashtable: %p.\n",
+           ndl_hashtable_keyhead(table));
+
+    printf("First val in hashtable: %p.\n",
+           ndl_hashtable_valhead(table));
+
+    printf("Inserting a couple pairs.\n");
+
+    int a=3, b=6;
+
+    printf("New item: %p.\n", ndl_hashtable_put(table, &a, &b));
+
+    a ++; b ++;
+    printf("New item: %p.\n", ndl_hashtable_put(table, &a, &b));
+
+    a ++; b ++;
+    printf("New item: %p.\n", ndl_hashtable_put(table, &a, &b));
+    ndl_hashtable_print(table);
+
+    a = 4;
+    int *c = ndl_hashtable_get(table, &a);
+    printf("Got %d for 4.\n", *c);
+
+    printf("All pairs:\n");
+    c = ndl_hashtable_keyhead(table);
+    while (c != NULL) {
+
+        printf("Pair: %d:%d.\n", *c, *(c + 1));
+        c = ndl_hashtable_keynext(table, c);
+    }
+
+    ndl_hashtable_kill(table);
+
+    return 0;
+}
+
 
 int main(int argc, const char *argv[]) {
 
@@ -379,9 +393,10 @@ int main(int argc, const char *argv[]) {
 
     int err;
     err  = testprettyprint();
-    //err |= testgraph();
-    //err |= testruntime();
+    err |= testgraph();
+    err |= testruntime();
     err |= testslab();
+    err |= testhashtable();
 
     printf("Finished tests.\n");
 

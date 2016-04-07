@@ -27,8 +27,8 @@ LIBS=m
 
 
 # Compiler flags.
-CCFLAGS=-I$(INC) -Wall -Wextra -Wno-unused-parameter -Wformat -Wpedantic -O2
-DEBUG=#-g -pg
+CCFLAGS=-I$(INC) -Wall -Wextra -Wno-unused-parameter -Wformat -Wpedantic -Wconversion -Wmissing-prototypes -Werror -O2
+DEBUG=-g #-pg
 LIBFLAGS=$(addprefix -l, $(LIBS))
 
 # Default rule for compiling object files.

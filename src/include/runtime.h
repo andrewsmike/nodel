@@ -8,24 +8,24 @@ typedef struct ndl_runtime_s ndl_runtime;
 /* Create and destroy a runtime.
  * Runtimes encapsulate a node graph and a number of processes.
  *
- * init() creates a new runtime.
- * init_using() creates a new runtime using the given graph.
- * kill() frees all runtime resources and the given runtime.
+ * init()  creates a new runtime.
+ * sinit() creates a new runtime using the given graph.
+ * kill()  frees all runtime resources and the given runtime.
  *
  * graph() gets the underlying graph of a runtime.
  */
-ndl_runtime *ndl_runtime_init(void);
-ndl_runtime *ndl_runtime_init_using(ndl_graph *graph);
-void         ndl_runtime_kill(ndl_runtime *runtime);
+ndl_runtime *ndl_runtime_init (void);
+ndl_runtime *ndl_runtime_sinit(ndl_graph *graph);
+void         ndl_runtime_kill (ndl_runtime *runtime);
 ndl_graph   *ndl_runtime_graph(ndl_runtime *runtime);
 
 /* Manipulate processes.
  *
- * proc_init() makes a new process from the given local block.
- * proc_kill() deletes a process with the given PID.
+ * proc_init()  makes a new process from the given local block.
+ * proc_kill()  deletes a process with the given PID.
  */
-int ndl_runtime_proc_init(ndl_runtime *runtime, ndl_ref local);
-int ndl_runtime_proc_kill(ndl_runtime *runtime, int pid);
+int ndl_runtime_proc_init (ndl_runtime *runtime, ndl_ref local);
+int ndl_runtime_proc_kill (ndl_runtime *runtime, int pid);
 
 /* Simulate processes for one or more steps.
  * Improved debugging support is yet to come.
