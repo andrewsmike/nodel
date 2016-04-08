@@ -452,15 +452,125 @@ int testruntimefibo(int steps) {
     return 0;
 }
 
+int testruntimefork(int threads) {
+
+    printf("Beginning fork tests.\n");
+
+    ndl_runtime *runtime = ndl_runtime_init();
+
+    if (runtime == NULL) {
+        fprintf(stderr, "Failed to allocate runtime.\n");
+        exit(EXIT_FAILURE);
+    }
+
+    ndl_graph *graph = ndl_runtime_graph(runtime);
+
+    int instid = 0;
+    ndl_ref insts[64];
+
+    /* count = threads
+     * one = 1
+     * thrdfunc = REF(threadfunc)
+     *
+     * loop:
+     * count --;
+     * branch count one -> exit, next, next
+     * invoke = new node()
+     * invoke.instpntr = thrdfunc
+     * invoke.id = count
+     * fork invoke | next=REF(loop)
+     *
+     * threadfunc:
+     * print count | next=REF(threadfunc)
+     *
+     * exit:
+     * exit
+     *
+     */
+
+    insts[instid] = testgraphalloc(graph);
+    ABCOPCODE(insts[instid], "load    ", "instpntr", "const   ", "count   ");
+    SET(insts[instid], "const   ", EVAL_INT, num=threads);
+    instid++;
+
+    insts[instid] = ndl_graph_salloc(graph, insts[instid - 1], NDL_SYM("next    "));
+    ABCOPCODE(insts[instid], "load    ", "instpntr", "const   ", "one     ");
+    SET(insts[instid], "const   ", EVAL_INT, num=1);
+    instid++;
+
+    int thrdload = instid;
+    insts[instid] = ndl_graph_salloc(graph, insts[instid - 1], NDL_SYM("next    "));
+    ABCOPCODE(insts[instid], "load    ", "instpntr", "const   ", "thrdfunc");
+    /* SET(insts[instid], "const   ", EVAL_REF, ref=thrdfunc); */
+    instid++;
+
+    int base = instid;
+    insts[instid] = ndl_graph_salloc(graph, insts[instid - 1], NDL_SYM("next    "));
+    ABCOPCODE(insts[instid], "sub     ", "count   ", "one     ", "count   ");
+    instid++;
+
+    int branch = instid;
+    insts[instid] = ndl_graph_salloc(graph, insts[instid - 1], NDL_SYM("next    "));
+    ABOPCODE(insts[instid], "branch  ", "count   ", "one     ");
+    instid++;
+
+    insts[instid] = ndl_graph_salloc(graph, insts[instid - 1], NDL_SYM("eq      "));
+    AOPCODE(insts[instid], "new     ", "invoke  ");
+    SET(insts[instid - 1], "gt      ", EVAL_REF, ref=insts[instid]);
+    instid++;
+
+    insts[instid] = ndl_graph_salloc(graph, insts[instid - 1], NDL_SYM("next    "));
+    ABCOPCODE(insts[instid], "save    ", "thrdfunc", "instpntr", "invoke  ");
+    SET(insts[instid], "const   ", EVAL_INT, num=0);
+    instid++;
+
+    insts[instid] = ndl_graph_salloc(graph, insts[instid - 1], NDL_SYM("next    "));
+    ABCOPCODE(insts[instid], "save    ", "count   ", "id      ", "invoke  ");
+    instid++;
+
+    insts[instid] = ndl_graph_salloc(graph, insts[instid - 1], NDL_SYM("next    "));
+    AOPCODE(insts[instid], "fork    ", "invoke  ");
+    SET(insts[instid], "next    ", EVAL_REF, ref=insts[base]);
+    instid++;
+
+    
+    insts[instid] = ndl_graph_salloc(graph, insts[branch], NDL_SYM("lt      "));
+    OPCODE(insts[instid], "exit    ");
+    instid++;
+
+    insts[instid] = ndl_graph_salloc(graph, insts[thrdload], NDL_SYM("const   "));
+    AOPCODE(insts[instid], "print   ", "id      ");
+    SET(insts[instid], "next    ", EVAL_REF, ref=insts[instid]);
+
+    ndl_ref rootlocal = testgraphalloc(graph);
+    SET(rootlocal, "instpntr", EVAL_REF, ref=insts[0]);
+
+    int pid = ndl_runtime_proc_init(runtime, rootlocal);
+
+    printf("[%3d] Process started. Instruction@frame: %3d@%03d.\n", pid, insts[0], rootlocal);
+
+    ndl_runtime_print(runtime);
+
+    ndl_runtime_step(runtime, 4 + 6*10);
+    ndl_runtime_print(runtime);
+
+    ndl_graph_print(graph);
+
+    ndl_runtime_kill(runtime);
+
+    return 0;
+}
+
 int main(int argc, const char *argv[]) {
 
     printf("Beginning tests.\n");
 
     int err;
     err  = testprettyprint();
-    //err |= testgraph();
-    //err |= testruntimeadd();
-    err |= testruntimefibo(0);
+    /* err |= testgraph(); */
+    /* err |= testruntimeadd(); */
+    /* err |= testruntimefibo(10); */
+    /* err |= testruntimefork(10); */
 
     printf("Finished tests.\n");
 
