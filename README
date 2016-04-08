@@ -2,5 +2,40 @@ Nodel
 =====
 
 Nodel is a toy language aimed at visually representing datastructures and algorithms.
-You can find details about the architecture in ARCH. To build, type 'make'.
+You can find details about the architecture in ARCH.
 
+Building
+--------
+make directives:
+- all: Build test application.
+- clean: Clean all files.
+
+Status
+------
+Nodel currently has a working node graph with backreferences and garbage collection.
+This is unreasonably inefficient and inflexible, but a replacement is in the works.
+Improved efficiency code can be found in the perf branch for now, until it is merged
+and integrated. (Nodepool shall be obliterated with the fury of a thousand daemons.)
+There is a basic opcode implementation, process step function, and runtime scheme.
+The runtime system is largely complete, with the exception of sleep/wait functionality,
+IO, serialization, and more debugging tools.
+(All of these stand to gain significant improvements from the perf branch, once in a working state.)
+It is able to run programs, which must be manually encoded into a graph.
+
+Future work
+-----------
+The perf branch will bring performance improvements (making most things O(1) or,
+at least, O(log(n))), along with added functionality in the form of efficient
+containers for mapping and storage. Waiting on this are improvements to runtime, eval, and nodepool.
+Better processes debugging tools are being considered.
+Tools for serializing / deserializing subsections of the graph are being considered.
+Tools for making instruction construction easy will be added.
+Runtime IO to/from nodel processes is being considered.
+An assembly language has been worked out, and an assembler in the works.
+A BASIC inspired higher level expression language is being considered.
+
+Goals
+-----
+The goal of this project is to build a virtual environment where users are able to manipulate
+running processes and their datastructures in realtime. The idea came from a discussion with
+friends about how programming systems embedded into sandbox games should work.
