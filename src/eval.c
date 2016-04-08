@@ -11,7 +11,7 @@
 struct ndl_opcodes_s {
     ndl_eval_func opfunc;
     const char *opcode;
-} ndl_opcodes[39] = {
+} ndl_opcodes[40] = {
 
     /* Nodes and slots. */
     ADDOP(new,  "new     "),
@@ -19,6 +19,7 @@ struct ndl_opcodes_s {
     ADDOP(load, "load    "),
     ADDOP(save, "save    "),
     ADDOP(drop, "drop    "),
+    ADDOP(type, "type    "),
 
     ADDOP(count, "count   "),
     ADDOP(iload, "iload   "),

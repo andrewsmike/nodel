@@ -7,6 +7,7 @@ copy:   opcode, syma, symb,       next  # self.symb = self.syma
 load:   opcode, syma, symb, symc, next  # self.symc = self.syma.symb
 save:   opcode, syma, symb, symc, next  # self.symc.symb = self.syma
 drop:   opcode, syma, symb,       next  # clear(self.syma.symb)
+type:   opcode, syma, symb, symc, next  # self.symc = typeof(self.syma.symb) ('none, 'ref, 'sym, 'int, 'float)
 
 count:  opcode, syma, symb,       next  # self.symb = len(self.syma)
 iload:  opcode, syma, symb, symc, next  # self.symc = self.syma[self.symb]

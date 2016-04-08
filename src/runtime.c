@@ -48,7 +48,7 @@ ndl_runtime *ndl_runtime_init(void) {
     return ret;
 }
 
-ndl_runtime *ndl_runtime_init_with(ndl_graph *graph) {
+ndl_runtime *ndl_runtime_init_using(ndl_graph *graph) {
 
     ndl_runtime *ret = malloc(sizeof(ndl_runtime));
 

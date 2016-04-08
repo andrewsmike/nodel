@@ -302,7 +302,10 @@ int testruntimeadd(void) {
 /* Run the canonical test fibonacci program.
  * Will be *much* more readable once constant symbols are set up for most operations.
  * Can't wait for that assembler. :P
- * count = count
+ *
+ * Local block starts with
+ * self.arg1 = number of iterations.
+ *
  * zero = 0
  * dec = -1
  *
@@ -340,7 +343,7 @@ int testruntimeadd(void) {
     ABOPCODE(node, opcode, a, b);                         \
     SET(node, "symc    ", EVAL_SYM, sym=NDL_SYM(c))
 
-int testruntimefibo(int steps) {
+int testruntimefibo(int steps, char *path) {
 
     printf("Beginning fibonacci runtime tests.\n");
 
@@ -357,11 +360,6 @@ int testruntimefibo(int steps) {
     ndl_ref insts[64];
 
     insts[instid] = testgraphalloc(graph);
-    ABCOPCODE(insts[instid], "load    ", "instpntr", "const   ", "count   ");
-    SET(insts[instid], "const   ", EVAL_INT, num=steps);
-    instid++;
-
-    insts[instid] = ndl_graph_salloc(graph, insts[instid - 1], NDL_SYM("next    "));
     ABCOPCODE(insts[instid], "load    ", "instpntr", "const   ", "a       ");
     SET(insts[instid], "const   ", EVAL_INT, num=0);
     instid++;
@@ -383,7 +381,7 @@ int testruntimefibo(int steps) {
 
     int brancha = instid;
     insts[instid] = ndl_graph_salloc(graph, insts[instid - 1], NDL_SYM("next    "));
-    ABOPCODE(insts[instid], "branch  ", "count   ", "zero    ");
+    ABOPCODE(insts[instid], "branch  ", "arg1    ", "zero    ");
     instid++;
 
     int printb = instid;
@@ -396,12 +394,12 @@ int testruntimefibo(int steps) {
     instid++;
     
     insts[instid] = ndl_graph_salloc(graph, insts[instid - 1], NDL_SYM("next    "));
-    ABCOPCODE(insts[instid], "sub     ", "count   ", "dec     ", "count   ");
+    ABCOPCODE(insts[instid], "sub     ", "arg1    ", "dec     ", "arg1    ");
     instid++;
 
     int branchb = instid;
     insts[instid] = ndl_graph_salloc(graph, insts[instid - 1], NDL_SYM("next    "));
-    ABOPCODE(insts[instid], "branch  ", "count   ", "zero    ");
+    ABOPCODE(insts[instid], "branch  ", "arg1    ", "zero    ");
     instid++;
 
     insts[instid] = ndl_graph_salloc(graph, insts[instid - 1], NDL_SYM("gt      "));
@@ -413,12 +411,12 @@ int testruntimefibo(int steps) {
     instid++;
     
     insts[instid] = ndl_graph_salloc(graph, insts[instid - 1], NDL_SYM("next    "));
-    ABCOPCODE(insts[instid], "sub     ", "count   ", "dec     ", "count   ");
+    ABCOPCODE(insts[instid], "sub     ", "arg1    ", "dec     ", "arg1    ");
     instid++;
 
     int branchc = instid;
     insts[instid] = ndl_graph_salloc(graph, insts[instid - 1], NDL_SYM("next    "));
-    ABOPCODE(insts[instid], "branch  ", "count   ", "zero    ");
+    ABOPCODE(insts[instid], "branch  ", "arg1    ", "zero    ");
     SET(insts[instid], "gt      ", EVAL_REF, ref=insts[printb]);
     instid++;
 
@@ -436,6 +434,7 @@ int testruntimefibo(int steps) {
 
     ndl_ref local = testgraphalloc(graph);
     SET(local, "instpntr", EVAL_REF, ref=insts[0]);
+    SET(local, "arg1    ", EVAL_INT, num=10);
 
     int pid = ndl_runtime_proc_init(runtime, local);
 
@@ -446,6 +445,52 @@ int testruntimefibo(int steps) {
     ndl_runtime_step(runtime, 100); ndl_runtime_print(runtime);
 
     ndl_graph_print(graph);
+
+
+    if (path != NULL) {
+
+        printf("Saving graph in file %s.\n", path);
+
+        int est = ndl_graph_mem_est(graph);
+        if (est < 0) {
+            fprintf(stderr, "Failed to estimate serialized graph size.\n");
+            ndl_runtime_kill(runtime);
+            return -1;
+        }
+
+        char *buff = malloc(est);
+        if (buff == NULL) {
+            fprintf(stderr, "Failed to allocate serialization buffer.\n");
+            ndl_runtime_kill(runtime);
+            return -1;
+        }
+
+        int size = ndl_graph_to_mem(graph, est, buff);
+
+        printf("Used %d bytes to serialize file. Guessed: %d.\n", size, est);
+
+        if (size <= 0) {
+            fprintf(stderr, "Failed to serialize graph.\n");
+            ndl_runtime_kill(runtime);
+            return -1;
+        }
+
+        FILE *out = fopen(path, "w");
+
+        if (out == NULL) {
+            fprintf(stderr, "Failed to open file.\n");
+            ndl_runtime_kill(runtime);
+            return -1;
+        }
+            
+        int written;
+        do {
+            written = fwrite(buff, sizeof(char), size, out);
+            if (written > 0)
+                size -= written;
+        } while ((size > 0) && (written > 0));
+        fclose(out);
+    }
 
     ndl_runtime_kill(runtime);
 
@@ -561,16 +606,68 @@ int testruntimefork(int threads) {
     return 0;
 }
 
+int testgraphsave(void) {
+
+    printf("Beginning serialization tests.\n");
+
+    ndl_graph *graph = ndl_graph_init();
+
+    ndl_ref n0 = testgraphalloc(graph);
+    ndl_ref n1 = ndl_graph_salloc(graph, n0, NDL_SYM("bleh    "));
+    ndl_ref n2 = ndl_graph_salloc(graph, n1, NDL_SYM("blah    "));
+    ndl_ref n3 = ndl_graph_salloc(graph, n2, NDL_SYM("bluh    "));
+    ndl_ref n4 = ndl_graph_salloc(graph, n3, NDL_SYM("blih    "));
+    ndl_ref n5 = ndl_graph_salloc(graph, n4, NDL_SYM("bloh    "));
+    ndl_ref n6 = ndl_graph_salloc(graph, n5, NDL_SYM("next    "));
+    ndl_graph_salloc(graph, n6, NDL_SYM("ahoi    "));
+    SET(n0, "hello   ", EVAL_SYM, sym=NDL_SYM("load    "));
+    SET(n0, "numbah  ", EVAL_INT, num=37);
+    SET(n1, "NEAXT   ", EVAL_REF, ref=n5);
+    SET(n2, "FLOATER ", EVAL_FLOAT, real=3.14159);
+    SET(n4, "const   ", EVAL_INT, num=2);
+    SET(n6, "PNTR    ", EVAL_REF, ref=n3);
+    SET(n3, "WOP     ", EVAL_REF, ref=n1);
+
+    int est = ndl_graph_mem_est(graph);
+    if (est < 0) {
+        fprintf(stderr, "Failed to estimate serialized graph size.\n");
+        ndl_graph_kill(graph);
+        return -1;
+    }
+
+    char buff[est];
+
+    int size = ndl_graph_to_mem(graph, est, buff);
+
+    printf("Est and return value: %d, %d.\n", est, size);
+
+    ndl_graph_print(graph);
+
+    ndl_graph_kill(graph);
+
+    graph = ndl_graph_from_mem(size, (void *) buff);
+
+    printf("Loading the serialized graph.\n");
+
+    ndl_graph_print(graph);
+
+    ndl_graph_kill(graph);
+
+    return 0;
+}
+
+
 int main(int argc, const char *argv[]) {
 
     printf("Beginning tests.\n");
 
-    int err;
-    err  = testprettyprint();
+    int err = 0;
+    /* err |= testprettyprint(); */
     /* err |= testgraph(); */
     /* err |= testruntimeadd(); */
-    /* err |= testruntimefibo(10); */
+    err |= testruntimefibo(10, NULL);
     /* err |= testruntimefork(10); */
+    /* err |= testgraphsave(); */
 
     printf("Finished tests.\n");
 

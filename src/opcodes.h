@@ -12,6 +12,7 @@ DEFOP(copy);
 DEFOP(load);
 DEFOP(save);
 DEFOP(drop);
+DEFOP(type);
 
 DEFOP(count);
 DEFOP(iload);

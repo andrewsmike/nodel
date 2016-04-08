@@ -172,13 +172,24 @@ ndl_ref ndl_node_pool_alloc(ndl_node_pool *pool) {
 
     for (int i = 0; i < NDL_MAX_NODES; i++) {
         if (pool->slots[i] == NULL) {
-            pool->slots[i] = ndl_kv_node_push(NULL, *((uint64_t*)"self    "), (ndl_value){.type=EVAL_REF, .ref=i});
+            pool->slots[i] = ndl_kv_node_push(NULL, NDL_SYM("self    "), NDL_VALUE(EVAL_REF, ref=i));
             pool->use++;
             return (ndl_ref) i;
         }
     }
 
     return NDL_NULL_REF;
+}
+
+ndl_ref ndl_node_pool_alloc_pref(ndl_node_pool *pool, ndl_ref pref) {
+
+    if (pool->slots[(int) pref] == NULL) {
+        pool->slots[(int) pref] = ndl_kv_node_push(NULL, NDL_SYM("self    "), NDL_VALUE(EVAL_REF, ref=pref));
+        pool->use++;
+        return pref;
+    } else {
+        return NDL_NULL_REF;
+    }
 }
 
 void ndl_node_pool_free(ndl_node_pool *pool, ndl_ref node) {

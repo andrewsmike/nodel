@@ -47,6 +47,7 @@ ndl_node_pool *ndl_node_pool_init(void);
 void           ndl_node_pool_kill(ndl_node_pool *pool);
 
 ndl_ref ndl_node_pool_alloc(ndl_node_pool *pool);
+ndl_ref ndl_node_pool_alloc_pref(ndl_node_pool *pool, ndl_ref pref); /* NDL_NULL_REF if pref is taken. */
 void    ndl_node_pool_free(ndl_node_pool *pool, ndl_ref node);
 
 int       ndl_node_pool_set(ndl_node_pool *pool, ndl_ref node, ndl_sym key, ndl_value val);

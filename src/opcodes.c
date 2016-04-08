@@ -156,6 +156,30 @@ BEGINOP(drop) {
     ADVANCE;
 }
 
+BEGINOP(type) {
+    INITRES;
+    LOADSYMABC;
+
+    LOADREF(local, sec, syma.sym);
+    ndl_value val = ndl_graph_get(graph, sec.ref, symb.sym);
+
+    char *type;
+    switch (val.type) {
+    case EVAL_NONE:  type = "none    "; break;
+    case EVAL_REF:   type = "ref     "; break;
+    case EVAL_SYM:   type = "sym     "; break;
+    case EVAL_INT:   type = "int     "; break;
+    case EVAL_FLOAT: type = "float   "; break;
+    default:         FAIL;              break;
+    }
+
+    ndl_sym typesym = NDL_SYM(type);
+
+    STORE(local, NDL_VALUE(EVAL_SYM, sym=typesym), symc.sym);
+
+    ADVANCE;
+}
+
 BEGINOP(count) {
     INITRES;
     LOADSYMAB;

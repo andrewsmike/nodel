@@ -1,5 +1,6 @@
 #include "graph.h"
 #include "nodepool.h"
+#include "endian.h"
 
 #include <stdlib.h>
 
@@ -63,6 +64,15 @@ ndl_ref ndl_graph_alloc(ndl_graph *graph) {
     return ret;
 }
 
+int ndl_graph_stat(ndl_graph *graph, ndl_ref node) {
+
+    ndl_value val = ndl_node_pool_get(graph->pool, node, NDL_SYM("\0gcsweep"));
+    if (val.type != EVAL_INT)
+        return -1;
+    else
+        return (val.num == -1)? 1 : 0;
+
+}
 int ndl_graph_unmark(ndl_graph *graph, ndl_ref node) {
 
     return ndl_node_pool_set(graph->pool, node, NDL_SYM("\0gcsweep"),
@@ -341,6 +351,225 @@ ndl_ref ndl_graph_backref_index(ndl_graph *graph, ndl_ref node, int index) {
     }
 
     return NDL_NULL_REF;
+}
+
+/* Serialization format:
+ * Entirely in big endian.
+ * Nodes not ordered by ID.
+ * KV pairs unordered.
+ * Includes self pointer.
+ *
+ * uint32_t node_count
+ * [
+ *   uint32_t id
+ *   uint16_t key_count
+ *   [
+ *     uint64_t key  # ((char*)&key)[0] = first letter
+ *     uint8_t type
+ *     uint64_t value # Same deal for symbols.
+ *   ]
+ * ]
+ *
+ *
+ * Size:
+ * sizeo(graphroot) = 4
+ * sizeof(noderoot) = 6
+ * sizeof(kvpair) = 17
+ * avgsizeof(node) = sizeof(noderoot) + sizeof(kvpair) * avgkvpairs = 6 + 17*avgkvpairs
+ * sizeof(graph) = sizeof(graphroot) + avgsizeof(node) * nodes = 4 + (6+17*avgkvpairs)*nodes
+ *               = 4 + 6*nodes + 17*keys
+ */
+
+int ndl_graph_mem_est(ndl_graph *graph) {
+
+    int nodes = ndl_node_pool_size(graph->pool);
+
+    /* Assume there are not more than 16 keys per node.
+     * If there are, caller functions will just retry with more.
+     * If there are not, it's not an unreasonable amount of wasted memory.
+     */
+    int estkvpairs = nodes * 16;
+
+    return 4 + 6*nodes + 17*estkvpairs;
+}
+
+#define MEMPUSH(type, value)              \
+    *((type *) &to[curr]) = (type) value; \
+    curr += sizeof(type)
+
+#define MEMPOP(type, var)          \
+    var = *((type *) &from[curr]); \
+    curr += sizeof(type)
+
+static inline int ndl_graph_to_mem_kvpair(ndl_graph *graph, ndl_sym key, ndl_value val, int maxlen, char *to) {
+
+    int curr = 0;
+
+    if ((unsigned) (maxlen - curr) < (sizeof(uint64_t) + sizeof(uint8_t) + sizeof(uint64_t)))
+        return -1;
+
+    MEMPUSH(uint64_t, ENDIAN_TO_BIG_64(key));
+    MEMPUSH(uint8_t, ((uint8_t) val.type));
+    MEMPUSH(int64_t, ENDIAN_TO_BIG_64(((uint64_t) val.num)));
+
+    return curr;
+}
+
+static inline int ndl_graph_to_mem_node(ndl_graph *graph, int node, int maxlen, char *to) {
+
+    int curr = 0;
+
+    uint32_t id = (unsigned) node;
+
+    uint16_t count = ndl_node_pool_get_size(graph->pool, (ndl_ref) node);
+
+    if ((unsigned) (maxlen - curr) < (sizeof(id) + sizeof(count)))
+        return -1;
+
+    MEMPUSH(uint32_t, ENDIAN_TO_BIG_32(id));
+    MEMPUSH(uint16_t, ENDIAN_TO_BIG_16(count));
+
+    int i;
+    for (i = 0; i < count; i++) {
+
+        ndl_sym key = ndl_node_pool_get_key(graph->pool, (ndl_ref) node, i);
+
+        ndl_value val = ndl_node_pool_get(graph->pool, (ndl_ref) node, key);
+
+        int used = ndl_graph_to_mem_kvpair(graph, key, val, maxlen - curr, to + curr);
+
+        if (used < 0)
+            return -1;
+
+        curr += used;
+    }
+
+    return curr;
+}
+
+int ndl_graph_to_mem(ndl_graph *graph, int maxlen, void *mem) {
+
+    char *to = (char *) mem;
+    int curr = 0;
+
+    uint32_t node_count = ndl_node_pool_size(graph->pool);
+    node_count = ENDIAN_TO_BIG_32(node_count);
+
+    if ((unsigned) (maxlen - curr) < sizeof(node_count))
+        return -1;
+
+    MEMPUSH(uint32_t, node_count);
+
+    int addr = ndl_node_pool_head(graph->pool);
+
+    while (addr >= 0) {
+
+        int used = ndl_graph_to_mem_node(graph, addr, maxlen - curr, to + curr);
+
+        if (used < 0)
+            return -1;
+
+        curr += used;
+
+        addr = ndl_node_pool_next(graph->pool, addr);
+    }
+
+    return curr;
+}
+static inline int ndl_graph_from_mem_kv(ndl_graph *graph, ndl_ref node, int maxlen, char *from) {
+
+    int curr = 0;
+
+    uint64_t key;
+    uint8_t type;
+    uint64_t val;
+
+    if ((unsigned) (maxlen - curr) < sizeof(key) + sizeof(type) + sizeof(val))
+        return -1;
+
+    MEMPOP(uint64_t, key); key = ENDIAN_FROM_BIG_64(key);
+    MEMPOP(uint8_t, type);
+    MEMPOP(uint64_t, val); val = ENDIAN_FROM_BIG_64(val);
+
+    ndl_value value;
+    value.type = type;
+    value.num = val;
+
+    if (ndl_node_pool_set(graph->pool, node, key, value) != 0)
+        return -1;
+
+    return curr;
+}
+
+static inline int ndl_graph_from_mem_node(ndl_graph *graph, int maxlen, char *from) {
+
+    int curr = 0;
+
+    uint32_t id;
+    uint16_t count;
+
+    if ((unsigned) (maxlen - curr) < sizeof(id) + sizeof(count))
+        return -1;
+
+    MEMPOP(uint32_t, id); id = ENDIAN_FROM_BIG_32(id);
+    MEMPOP(uint16_t, count); count = ENDIAN_FROM_BIG_16(count);
+
+    ndl_ref node = ndl_node_pool_alloc_pref(graph->pool, (ndl_ref) id);
+
+    if (node == NDL_NULL_REF)
+        return -1;
+
+    unsigned int i;
+    for (i = 0; i < count; i++) {
+
+        int used = ndl_graph_from_mem_kv(graph, node, maxlen - curr, from + curr);
+        if (used < 0)
+            return -1;
+
+        curr += used;
+    }
+
+    return curr;
+}
+
+ndl_graph *ndl_graph_from_mem(int maxlen, void *mem) {
+
+    ndl_graph *graph = ndl_graph_init();
+
+    if (graph == NULL)
+        return NULL;
+
+    char *from = mem;
+    int curr = 0;
+
+    uint32_t count;
+    if ((unsigned) (maxlen - curr) < sizeof(count))
+        return NULL;
+
+    count = ENDIAN_FROM_BIG_32(*((uint32_t *) &from[curr]));
+    curr += sizeof(count);
+
+    unsigned int i;
+    for (i = 0; i < count; i++) {
+
+        int used = ndl_graph_from_mem_node(graph, maxlen - curr, from + curr);
+        if (used < 0) {
+            ndl_graph_kill(graph);
+            return NULL;
+        }
+
+        curr += used;
+    }
+
+    return graph;
+}
+
+int ndl_graph_copy(ndl_graph *to, ndl_graph *from, ndl_ref **refs) {
+    return -1;
+}
+
+int ndl_graph_dcopy(ndl_graph *to, ndl_graph *from, ndl_ref **roots) {
+    return -1;
 }
 
 void ndl_graph_print(ndl_graph *graph) {

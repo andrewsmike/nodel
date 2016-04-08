@@ -16,8 +16,8 @@ SRC=src
 INC=src/include
 
 # Source and header files.
-SRC_OBJS=test node graph runtime asm nodepool eval opcodes
-INC_OBJS=     node graph runtime asm
+SRC_OBJS=node graph runtime asm nodepool eval opcodes
+INC_OBJS=node graph runtime asm
 
 OBJ_PATHS=$(addprefix $(SRC)/, $(addsuffix .o, $(SRC_OBJS)))
 SRC_PATHS=$(addprefix $(SRC)/, $(addsuffix .c, $(SRC_OBJS)))
@@ -27,8 +27,8 @@ LIBS=m
 
 
 # Compiler flags.
-CCFLAGS=-I$(INC) -Wall -Wextra -Wno-unused-parameter -Wformat -Wpedantic -O2
-DEBUG=#-g -pg
+CCFLAGS=-I$(INC) -Wall -Wextra -Wno-unused-parameter -Wformat -Wpedantic
+DEBUG=-O2 #-g -pg
 LIBFLAGS=$(addprefix -l, $(LIBS))
 
 # Default rule for compiling object files.
@@ -36,17 +36,21 @@ LIBFLAGS=$(addprefix -l, $(LIBS))
 	$(CC) $(CCFLAGS) $(DEBUG) -c $< -o $@
 
 # Rule for compiling main executable.
-nodel: $(OBJ_PATHS)
+nodel: $(OBJ_PATHS) $(SRC)/nodel.o
+	$(CC) $(DEBUG) $(LIBFLAGS) $^ -o $@
+
+# Rule for compiling main executable.
+test: $(OBJ_PATHS) $(SRC)/test.o
 	$(CC) $(DEBUG) $(LIBFLAGS) $^ -o $@
 
 run: nodel
 	./nodel
 
 # Main rule.
-all: nodel
+all: nodel test
 
 # Clean repo.
 clean:
-	rm -f $(OBJ_PATHS) nodel
+	rm -f $(OBJ_PATHS) nodel test
 
 .PHONY: all_proxy all clean
