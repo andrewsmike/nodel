@@ -55,11 +55,9 @@ exit:   opcode             # Kill current process.
 sleep:  opcode, syma, next # Sleep for self.syma milliseconds.
 wait:   opcode, syma, next # Sleep until someone modifies a given node.
 
+# Node: Different devices will have different semantics, and may require extra arguments.
+IO:
+excall: opcode, syma, symb, symc, next # self.symc = RPC(dest=self.syma, data=self.symb)
+
 Debug:
 print:  opcode, syma, next # Print the value in self.syma to console.
-
-/*
-IO:
-Storage:
-GC/Nuke:
-*/

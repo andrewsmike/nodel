@@ -60,6 +60,8 @@ typedef struct ndl_eval_result_s {
         EACTION_WAIT,  /* Sleep until actval.ref is modified. */
         EACTION_SLEEP, /* Sleep for actval.num milliseconds. */
 
+        EACTION_EXCALL, /* External call. actval = last instpntr. Special handling. */
+
         EACTION_SIZE
 
     } action;

@@ -55,13 +55,16 @@ DEFOP(stoi);
 DEFOP(branch);
 DEFOP(push);
 
-/* Runtime.. */
+/* Runtime. */
 DEFOP(fork);
 DEFOP(exit);
 DEFOP(wait);
 DEFOP(sleep);
 
-/* Temporary / debugging. */
+/* IO */
+DEFOP(excall);
+
+/* Debugging. */
 DEFOP(print);
 
 #endif /* NODEL_OPCODES_H */

@@ -104,11 +104,14 @@ int main(int argc, char *argv[]) {
     char argname[8];
     memcpy(argname, "arg     ", 8);
 
+    char *name = argname;
+
     int i;
     for (i = 0; i < argc; i++) {
         ndl_value arg = parse_arg(argv[i + 2]);
         argname[3] = (i < 9)? '1' + i : 'A' + i;
-        ndl_graph_set(graph, local, NDL_SYM(argname), arg);
+        ndl_sym key = NDL_SYM(name);
+        ndl_graph_set(graph, local, key, arg);
     }
 
     ndl_runtime_proc_init(runtime, local);

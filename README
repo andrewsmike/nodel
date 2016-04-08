@@ -26,11 +26,11 @@ Future work
 -----------
 The perf branch will bring performance improvements (making most things O(1) or,
 at least, O(log(n))), along with added functionality in the form of efficient
-containers for mapping and storage. Waiting on this are improvements to runtime, eval, and nodepool.
+containers for mapping and storage.
+Waiting on this are improvements to runtime, eval, and nodepool. (under works)
 Better processes debugging tools are being considered.
-Tools for serializing / deserializing subsections of the graph are being considered.
-Tools for making instruction construction easy will be added.
-Runtime IO to/from nodel processes is being considered.
+Tools for rooted subgraph copy are in the works.
+Runtime through excall is in the works. Mostly waiting on runtime upgrades from perf branch.
 An assembly language has been worked out, and an assembler in the works.
 A BASIC inspired higher level expression language is being considered.
 

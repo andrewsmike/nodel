@@ -405,6 +405,16 @@ BEGINOP(wait) {
     ADVANCE;
 }
 
+BEGINOP(excall) {
+    INITRES;
+
+    res.action = EACTION_EXCALL;
+    res.actval.type = EVAL_REF;
+    res.actval.ref = pc;
+
+    ADVANCE;
+}
+
 BEGINOP(print) {
     INITRES;
     LOADSYMA;

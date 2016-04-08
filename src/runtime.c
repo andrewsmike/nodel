@@ -180,9 +180,12 @@ static void ndl_runtime_tick(ndl_runtime *runtime, int index) {
 
     case EACTION_WAIT:
     case EACTION_SLEEP:
+    case EACTION_EXCALL:
+        exit = 2;
+        break;
     case EACTION_FAIL:
     default:
-        exit = 2;
+        exit = 3;
         break;
     }
 
@@ -195,6 +198,8 @@ static void ndl_runtime_tick(ndl_runtime *runtime, int index) {
     }
 
     if (exit == 2)
+        printf("[%3d] Unsupported feature. Killing.\n", index);
+    if (exit == 3)
         printf("[%3d] Invalid local or bad instruction. Killing.\n", index);
 }
 
