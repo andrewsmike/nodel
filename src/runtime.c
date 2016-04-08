@@ -97,12 +97,15 @@ int ndl_runtime_proc_init(ndl_runtime *runtime, ndl_ref local) {
     if (runtime->proccount >= NDL_MAX_PROCS - 1)
         return -1;
 
+    if (ndl_graph_mark(runtime->graph, local) != 0)
+        return -1;
+
     runtime->proccount++;
     int pid = runtime->nextpid++;
     runtime->procs[slot].pid = pid;
     runtime->procs[slot].local = local;
 
-    return 0;
+    return pid;
 }
 
 static inline int ndl_runtime_proc_index(ndl_runtime *runtime, int pid) {
@@ -149,10 +152,13 @@ static void ndl_runtime_tick(ndl_runtime *runtime, int index) {
     switch (res.action) {
     case EACTION_CALL:
 
-        if (res.actval.type != EVAL_REF || res.actval.ref == NDL_NULL_REF)
+        if (res.actval.type != EVAL_REF || res.actval.ref == NDL_NULL_REF) {
             exit = 2;
-        else
+        } else {
+            ndl_graph_unmark(graph, runtime->procs[index].local);
+            ndl_graph_mark(graph, res.actval.ref);
             runtime->procs[index].local = res.actval.ref;
+        }
 
         break;
 

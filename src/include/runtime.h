@@ -21,7 +21,7 @@ ndl_graph   *ndl_runtime_graph(ndl_runtime *runtime);
 
 /* Manipulate processes.
  *
- * proc_init() makes a new process from the given local block.
+ * proc_init() makes a new process from the given local block. Returns PID.
  * proc_kill() deletes a process with the given PID.
  */
 int ndl_runtime_proc_init(ndl_runtime *runtime, ndl_ref local);

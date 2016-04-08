@@ -32,7 +32,7 @@ DEBUG=#-g -pg
 LIBFLAGS=$(addprefix -l, $(LIBS))
 
 # Default rule for compiling object files.
-%.o: %.c $(INC_PATHS)
+%.o: %.c $(INC_PATHS) $(SRC)/*.h
 	$(CC) $(CCFLAGS) $(DEBUG) -c $< -o $@
 
 # Rule for compiling main executable.
