@@ -15,9 +15,9 @@
  * All operations take place on this local node.
  * Each operation, the PC advances, the local block may be replaced.
  *
- * When calling a function, you do the following:
+ * To call a function, you can do the following:
  * - Create a new node (self.invoke)
- * - Give it an initial PC (self.invoke.PC = myfunc)
+ * - Give it an initial PC (self.invoke.instpntr = myfunc)
  * - Give it arguments (self.invoke.arg1 = ...)
  * - Give it a return frame (self.invoke.return = self)
  * - Set the local to self.invoke
@@ -25,16 +25,54 @@
  * Upon completion, you can access any of its variables, including return values.
  * To return from a function, simply set the local to self.return.
  *
- * These semantics are merely suggestions.
- * The only strict requirements are that self.PC points to the current instruction node.
+ * These semantics are merely a suggestion.
+ * The only strict requirements are that self.instpntr points to the
+ * current instruction node.
  */
 
+/* Evaluation keeps track of touched nodes, next frame, fork calls, and more.
+ * Returns all modified nodes (including the local frame) and a runtime-oriented
+ * action. res.action has a number of types. It uses res.actval as its argument.
+ *
+ * mod_count: Number of nodes touched by the opcode. Includes local.
+ * mod[2]: Up to two addresses touched by the opcode. Trash when not in use.
+ *     May include repeats. Includes local block.
+ *
+ * action: Action to take using actval.
+ * actval: Value of action to take. Could be timeout, reference for wait,
+ *     local for for a forked process, etc. Trash when not in use.
+ */
+typedef struct ndl_eval_result_s {
+
+    uint8_t mod_count;
+    ndl_ref mod[2];
+
+    enum ndl_action_e {
+
+        EACTION_NONE,  /* Continue executing normally. */
+
+        EACTION_CALL,  /* Set local=actval.ref. */
+
+        EACTION_FORK,  /* Create new proc with local=actval.ref. */
+        EACTION_EXIT,  /* Exit gracefully. */
+        EACTION_FAIL,  /* Exit... roughly. */
+
+        EACTION_WAIT,  /* Sleep until actval.ref is modified. */
+        EACTION_SLEEP, /* Sleep for actval.num milliseconds. */
+
+        EACTION_SIZE
+
+    } action;
+
+    ndl_value actval;
+
+} ndl_eval_result;
 
 /* Simulates a single instruction for the frame given by local.
  * If process exits, returns NDL_NULL_REF.
  * If changes frame, returns new local.
  */
-ndl_ref ndl_eval(ndl_graph *graph, ndl_ref local);
+ndl_eval_result ndl_eval(ndl_graph *graph, ndl_ref local);
 
 
 /* Index and access opcode-implementing functions.
@@ -46,7 +84,7 @@ ndl_ref ndl_eval(ndl_graph *graph, ndl_ref local);
  * size() gets the number of opcodes.
  * index() gets the Nth opcode's symbol.
  */
-typedef ndl_ref (*ndl_eval_func)(ndl_graph *graph, ndl_ref local, ndl_ref pc);
+typedef ndl_eval_result (*ndl_eval_func)(ndl_graph *graph, ndl_ref local, ndl_ref pc);
 
 ndl_eval_func ndl_eval_lookup(ndl_sym opcode);
 

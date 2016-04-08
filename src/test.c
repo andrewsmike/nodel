@@ -220,9 +220,9 @@ int testgraph(void) {
 #define SET(node, key, type, val) \
     ndl_graph_set(graph, node, NDL_SYM(key), NDL_VALUE(type, val))
 
-int testruntime(void) {
+int testruntimeadd(void) {
 
-    printf("Beginning runtime tests.\n");
+    printf("Beginning runtime addition tests.\n");
 
     ndl_runtime *runtime = ndl_runtime_init();
 
@@ -299,6 +299,159 @@ int testruntime(void) {
     return 0;
 }
 
+/* Run the canonical test fibonacci program.
+ * Will be *much* more readable once constant symbols are set up for most operations.
+ * Can't wait for that assembler. :P
+ * count = count
+ * zero = 0
+ * dec = -1
+ *
+ * a = 0
+ * b = 1
+ * branch count zero -> exit exit printb
+ *
+ * printb:
+ * print b
+ * a = a + b
+ * count = count - dec
+ * branch count zero -> exit exit printa
+ *
+ * printa:
+ * print a
+ * b = a + b
+ * count = count - dec
+ * branch count zero -> exit exit printb
+ *
+ * exit:
+ * exit
+ */
+#define OPCODE(node, opcode)                              \
+    SET(node, "opcode  ", EVAL_SYM, sym=NDL_SYM(opcode))
+    
+#define AOPCODE(node, opcode, a)                          \
+    OPCODE(node, opcode);                                 \
+    SET(node, "syma    ", EVAL_SYM, sym=NDL_SYM(a))
+
+#define ABOPCODE(node, opcode, a, b)                      \
+    AOPCODE(node, opcode, a);                             \
+    SET(node, "symb    ", EVAL_SYM, sym=NDL_SYM(b))
+
+#define ABCOPCODE(node, opcode, a, b, c)                  \
+    ABOPCODE(node, opcode, a, b);                         \
+    SET(node, "symc    ", EVAL_SYM, sym=NDL_SYM(c))
+
+int testruntimefibo(int steps) {
+
+    printf("Beginning fibonacci runtime tests.\n");
+
+    ndl_runtime *runtime = ndl_runtime_init();
+
+    if (runtime == NULL) {
+        fprintf(stderr, "Failed to allocate runtime.\n");
+        exit(EXIT_FAILURE);
+    }
+
+    ndl_graph *graph = ndl_runtime_graph(runtime);
+
+    int instid = 0;
+    ndl_ref insts[64];
+
+    insts[instid] = testgraphalloc(graph);
+    ABCOPCODE(insts[instid], "load    ", "instpntr", "const   ", "count   ");
+    SET(insts[instid], "const   ", EVAL_INT, num=steps);
+    instid++;
+
+    insts[instid] = ndl_graph_salloc(graph, insts[instid - 1], NDL_SYM("next    "));
+    ABCOPCODE(insts[instid], "load    ", "instpntr", "const   ", "a       ");
+    SET(insts[instid], "const   ", EVAL_INT, num=0);
+    instid++;
+
+    insts[instid] = ndl_graph_salloc(graph, insts[instid - 1], NDL_SYM("next    "));
+    ABCOPCODE(insts[instid], "load    ", "instpntr", "const   ", "b       ");
+    SET(insts[instid], "const   ", EVAL_INT, num=1);
+    instid++;
+
+    insts[instid] = ndl_graph_salloc(graph, insts[instid - 1], NDL_SYM("next    "));
+    ABCOPCODE(insts[instid], "load    ", "instpntr", "const   ", "zero    ");
+    SET(insts[instid], "const   ", EVAL_INT, num=0);
+    instid++;
+
+    insts[instid] = ndl_graph_salloc(graph, insts[instid - 1], NDL_SYM("next    "));
+    ABCOPCODE(insts[instid], "load    ", "instpntr", "const   ", "dec     ");
+    SET(insts[instid], "const   ", EVAL_INT, num=1);
+    instid++;
+
+    int brancha = instid;
+    insts[instid] = ndl_graph_salloc(graph, insts[instid - 1], NDL_SYM("next    "));
+    ABOPCODE(insts[instid], "branch  ", "count   ", "zero    ");
+    instid++;
+
+    int printb = instid;
+    insts[instid] = ndl_graph_salloc(graph, insts[instid - 1], NDL_SYM("gt      "));
+    AOPCODE(insts[instid], "print   ", "b       ");
+    instid++;
+    
+    insts[instid] = ndl_graph_salloc(graph, insts[instid - 1], NDL_SYM("next    "));
+    ABCOPCODE(insts[instid], "add     ", "a       ", "b       ", "a       ");
+    instid++;
+    
+    insts[instid] = ndl_graph_salloc(graph, insts[instid - 1], NDL_SYM("next    "));
+    ABCOPCODE(insts[instid], "sub     ", "count   ", "dec     ", "count   ");
+    instid++;
+
+    int branchb = instid;
+    insts[instid] = ndl_graph_salloc(graph, insts[instid - 1], NDL_SYM("next    "));
+    ABOPCODE(insts[instid], "branch  ", "count   ", "zero    ");
+    instid++;
+
+    insts[instid] = ndl_graph_salloc(graph, insts[instid - 1], NDL_SYM("gt      "));
+    AOPCODE(insts[instid], "print   ", "a       ");
+    instid++;
+    
+    insts[instid] = ndl_graph_salloc(graph, insts[instid - 1], NDL_SYM("next    "));
+    ABCOPCODE(insts[instid], "add     ", "a       ", "b       ", "b       ");
+    instid++;
+    
+    insts[instid] = ndl_graph_salloc(graph, insts[instid - 1], NDL_SYM("next    "));
+    ABCOPCODE(insts[instid], "sub     ", "count   ", "dec     ", "count   ");
+    instid++;
+
+    int branchc = instid;
+    insts[instid] = ndl_graph_salloc(graph, insts[instid - 1], NDL_SYM("next    "));
+    ABOPCODE(insts[instid], "branch  ", "count   ", "zero    ");
+    SET(insts[instid], "gt      ", EVAL_REF, ref=insts[printb]);
+    instid++;
+
+    int exit = instid;
+    insts[instid] = ndl_graph_salloc(graph, insts[instid - 1], NDL_SYM("lt      "));
+    OPCODE(insts[instid], "exit    ");
+
+    SET(insts[brancha], "lt      ", EVAL_REF, ref=insts[exit]);
+    SET(insts[brancha], "eq      ", EVAL_REF, ref=insts[exit]);
+
+    SET(insts[branchb], "lt      ", EVAL_REF, ref=insts[exit]);
+    SET(insts[branchb], "eq      ", EVAL_REF, ref=insts[exit]);
+
+    SET(insts[branchc], "eq      ", EVAL_REF, ref=insts[exit]);
+
+    ndl_ref local = testgraphalloc(graph);
+    SET(local, "instpntr", EVAL_REF, ref=insts[0]);
+
+    int pid = ndl_runtime_proc_init(runtime, local);
+
+    printf("[%3d] Process started. Instruction@frame: %3d@%03d.\n", pid, insts[0], local);
+
+    ndl_runtime_print(runtime);
+
+    ndl_runtime_step(runtime, 100); ndl_runtime_print(runtime);
+
+    ndl_graph_print(graph);
+
+    ndl_runtime_kill(runtime);
+
+    return 0;
+}
+
 int main(int argc, const char *argv[]) {
 
     printf("Beginning tests.\n");
@@ -306,7 +459,8 @@ int main(int argc, const char *argv[]) {
     int err;
     err  = testprettyprint();
     //err |= testgraph();
-    err |= testruntime();
+    //err |= testruntimeadd();
+    err |= testruntimefibo(0);
 
     printf("Finished tests.\n");
 

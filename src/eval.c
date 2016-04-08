@@ -11,7 +11,7 @@
 struct ndl_opcodes_s {
     ndl_eval_func opfunc;
     const char *opcode;
-} ndl_opcodes[47] = {
+} ndl_opcodes[39] = {
 
     /* Nodes and slots. */
     ADDOP(new,  "new     "),
@@ -61,6 +61,12 @@ struct ndl_opcodes_s {
     ADDOP(branch, "branch  "),
     ADDOP(push,   "push    "),
 
+    /* Runtime. */
+    ADDOP(fork,  "fork    "),
+    ADDOP(exit,  "exit    "),
+    ADDOP(wait,  "wait    "),
+    ADDOP(sleep, "sleep   "),
+
     /* Temporary / debugging. */
     ADDOP(print,  "print   "),
 };
@@ -85,19 +91,23 @@ ndl_sym ndl_eval_index(int index) {
     return NDL_SYM(ndl_opcodes[index].opcode);
 }
 
-ndl_ref ndl_eval(ndl_graph *graph, ndl_ref local) {
+ndl_eval_result ndl_eval(ndl_graph *graph, ndl_ref local) {
+
+    ndl_eval_result err;
+    err.mod_count = 0;
+    err.action = EACTION_FAIL;
 
     ndl_value pc = ndl_graph_get(graph, local, NDL_SYM("instpntr"));
     if (pc.type != EVAL_REF || pc.ref == NDL_NULL_REF)
-        return NDL_NULL_REF;  /* Bad local. Abort thread. */
+        return err;  /* Bad local. Abort thread. */
 
     ndl_value opcode = ndl_graph_get(graph, pc.ref, NDL_SYM("opcode  "));
     if (opcode.type != EVAL_SYM)
-        return NDL_NULL_REF; /* Bad instruction. Abort thread. */
+        return err; /* Bad instruction. Abort thread. */
 
     ndl_eval_func op = ndl_eval_lookup(opcode.sym);
     if (op == NULL)
-        return NDL_NULL_REF; /* Bad instruction. Abort thread. */
+        return err; /* Bad instruction. Abort thread. */
 
     return op(graph, local, pc.ref);
 }

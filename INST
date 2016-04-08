@@ -51,6 +51,9 @@ exit:   opcode             # Kill current process.
 sleep:  opcode, syma, next # Sleep for self.syma milliseconds.
 wait:   opcode, syma, next # Sleep until someone modifies a given node.
 
+Debug:
+print:  opcode, syma, next # Print the value in self.syma to console.
+
 /*
 IO:
 Storage:

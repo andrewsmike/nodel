@@ -3,7 +3,8 @@
 
 #include "eval.h"
 
-#define DEFOP(name) ndl_ref ndl_opcode_ ## name(ndl_graph *graph, ndl_ref local, ndl_ref pc)
+#define DEFOP(name) \
+    ndl_eval_result ndl_opcode_ ## name(ndl_graph *graph, ndl_ref local, ndl_ref pc)
 
 /* Nodes and slots. */
 DEFOP(new);
@@ -52,6 +53,12 @@ DEFOP(stoi);
 /* Control. */
 DEFOP(branch);
 DEFOP(push);
+
+/* Runtime.. */
+DEFOP(fork);
+DEFOP(exit);
+DEFOP(wait);
+DEFOP(sleep);
 
 /* Temporary / debugging. */
 DEFOP(print);

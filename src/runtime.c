@@ -2,6 +2,7 @@
 #include "eval.h"
 
 #include <stdlib.h>
+#include <stdio.h>
 
 struct ndl_process_s {
 
@@ -104,23 +105,35 @@ int ndl_runtime_proc_init(ndl_runtime *runtime, ndl_ref local) {
     return 0;
 }
 
-int ndl_runtime_proc_kill(ndl_runtime *runtime, int pid) {
+static inline int ndl_runtime_proc_index(ndl_runtime *runtime, int pid) {
 
     int count = runtime->proccount;
 
     int i;
     for (i = 0; i < count; i++) {
 
-        if (runtime->procs[i].pid == pid) {
-
-            runtime->procs[i] = runtime->procs[count - 1];
-            runtime->procs[count-1] = (struct ndl_process_s) {.pid = -1, .local = NDL_NULL_REF };
-            runtime->proccount--;
-            return 0;
-        }
+        if (runtime->procs[i].pid == pid)
+            return i;
     }
 
     return -1;
+}
+
+int ndl_runtime_proc_kill(ndl_runtime *runtime, int pid) {
+
+    int index = ndl_runtime_proc_index(runtime, pid);
+
+    if (index < 0)
+        return index;
+
+    
+    int count = runtime->proccount;
+
+    runtime->procs[index] = runtime->procs[count - 1];
+    runtime->procs[count - 1] = (struct ndl_process_s) {.pid = -1, .local = NDL_NULL_REF };
+    runtime->proccount--;
+
+    return 0;
 }
 
 static void ndl_runtime_tick(ndl_runtime *runtime, int index) {
@@ -128,36 +141,75 @@ static void ndl_runtime_tick(ndl_runtime *runtime, int index) {
     ndl_ref local = runtime->procs[index].local;
     ndl_graph *graph = runtime->graph;
 
-    ndl_ref next = ndl_eval(graph, local);
+    ndl_eval_result res = ndl_eval(graph, local);
 
-    if (next == local)
-        return;
+    /* Scan for modified nodes / waits. */
+    int exit = 0;
 
-    if (next != NDL_NULL_REF) {
-        runtime->procs[index].local = next;
-        return;
+    switch (res.action) {
+    case EACTION_CALL:
+
+        if (res.actval.type != EVAL_REF || res.actval.ref == NDL_NULL_REF)
+            exit = 2;
+        else
+            runtime->procs[index].local = res.actval.ref;
+
+        break;
+
+    case EACTION_FORK:
+
+        if ((res.actval.type != EVAL_REF) || (res.actval.ref == NDL_NULL_REF))
+            exit = 2;
+        else
+            ndl_runtime_proc_init(runtime, res.actval.ref);
+
+        break;
+
+    case EACTION_NONE:
+        break;
+
+    case EACTION_EXIT:
+        exit = 1;
+        break;
+
+    case EACTION_WAIT:
+    case EACTION_SLEEP:
+    case EACTION_FAIL:
+    default:
+        exit = 2;
+        break;
     }
 
-    int count = runtime->proccount;
+    if (exit != 0) {
+        int count = runtime->proccount;
 
-    runtime->procs[index] = runtime->procs[count - 1];
-    runtime->procs[count - 1] = (struct ndl_process_s) {.pid=-1, .local = NDL_NULL_REF};
-    runtime->proccount--;
+        runtime->procs[index] = runtime->procs[count - 1];
+        runtime->procs[count - 1] = (struct ndl_process_s) {.pid=-1, .local = NDL_NULL_REF};
+        runtime->proccount--;
+    }
+
+    if (exit == 2)
+        printf("[%3d] Invalid local or bad instruction. Killing.\n", index);
 }
 
 void ndl_runtime_step_proc(ndl_runtime *runtime, int pid, int steps) {
 
-    int i;
-    for (i = 0; i < runtime->proccount; i++)
-        if (runtime->procs[i].pid == pid)
-            while ((steps-- > 0) && (runtime->procs[i].pid == pid))
-                ndl_runtime_tick(runtime, i);
+    int index = ndl_runtime_proc_index(runtime, pid);
+
+    if (index < 0)
+        return;
+
+    while ((steps-- > 0) && (runtime->procs[index].pid == pid))
+        ndl_runtime_tick(runtime, index);
 }
 
 void ndl_runtime_step(ndl_runtime *runtime, int steps) {
 
     int i;
     while (steps-- > 0) {
+        if (runtime->proccount == 0)
+            return;
+
         for (i = 0; i < runtime->proccount; i++) {
 
             int pid = runtime->procs[i].pid;
