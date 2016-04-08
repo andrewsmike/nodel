@@ -44,6 +44,7 @@ own arguments, but they typically have one or more symbols (syma,
 symb, symc.) Instructions also have the pointer to their next
 instruction, and branching instructions have multiple. Nodel programs
 are prepared graphs of instruction nodes.
+A list of instructions can be found in INST.
 
 
 

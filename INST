@@ -1,3 +1,6 @@
+Nodel instructions
+==================
+
 Nodes and slots:
 new:    opcode, syma,             next, # self.syma = new node()
 copy:   opcode, syma, symb,       next  # self.symb = self.syma
@@ -43,7 +46,7 @@ stoi:   opcode, syma, symb,       next  # self.symb = (int) self.syma
 
 Control:
 branch: opcode, syma, symb, gt, eq, lt  # Take the appropriate branch 
-push:   opcode, syma                    # push the frame, take on new PC, self.
+push:   opcode, syma              next  # push the frame, take on new PC, self.
 
 Process:
 fork:   opcode, syma, next # Create a process with self.syma as the self.
