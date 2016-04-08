@@ -35,7 +35,7 @@
  * action. res.action has a number of types. It uses res.actval as its argument.
  *
  * mod_count: Number of nodes touched by the opcode. Includes local.
- * mod[2]: Up to two addresses touched by the opcode. Trash when not in use.
+ * mod: Up to three addresses touched by the opcode. Trash when not in use.
  *     May include repeats. Includes local block.
  *
  * action: Action to take using actval.
@@ -45,7 +45,7 @@
 typedef struct ndl_eval_result_s {
 
     uint8_t mod_count;
-    ndl_ref mod[2];
+    ndl_ref mod[3];
 
     enum ndl_action_e {
 

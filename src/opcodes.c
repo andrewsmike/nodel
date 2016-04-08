@@ -68,7 +68,6 @@
 
 #define STORE(node, value, sym)                           \
     do {                                                  \
-        if (res.mod_count > 1) FAIL;                      \
         res.mod[res.mod_count++] = node;                  \
         int err = ndl_graph_set(graph, node, sym, value); \
         if (err != 0)                                     \
