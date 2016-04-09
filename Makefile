@@ -27,7 +27,7 @@ LIBS=m
 
 
 # Compiler flags.
-CCFLAGS=-I$(INC) -Wall -Wextra -Wno-unused-parameter -Wformat -Wpedantic -Wconversion -Wmissing-prototypes -Werror
+CCFLAGS=-std=c11 -I$(INC) -Wall -Wextra -Wno-unused-parameter -Wformat -Wpedantic -Wconversion -Wmissing-prototypes -Werror
 DEBUG= #-O2 -g -pg
 LIBFLAGS=$(addprefix -l, $(LIBS))
 
