@@ -16,8 +16,8 @@ SRC=src
 INC=src/include
 
 # Source and header files.
-SRC_OBJS=node graph runtime asm nodepool eval opcodes
-INC_OBJS=node graph runtime asm
+SRC_OBJS=graph node runtime asm slab hashtable nodepool eval opcodes
+INC_OBJS=graph node runtime asm
 
 OBJ_PATHS=$(addprefix $(SRC)/, $(addsuffix .o, $(SRC_OBJS)))
 SRC_PATHS=$(addprefix $(SRC)/, $(addsuffix .c, $(SRC_OBJS)))
@@ -27,8 +27,8 @@ LIBS=m
 
 
 # Compiler flags.
-CCFLAGS=-I$(INC) -Wall -Wextra -Wno-unused-parameter -Wformat -Wpedantic
-DEBUG=-O2 #-g -pg
+CCFLAGS=-I$(INC) -Wall -Wextra -Wno-unused-parameter -Wformat -Wpedantic -Wconversion -Wmissing-prototypes -Werror
+DEBUG= #-O2 -g -pg
 LIBFLAGS=$(addprefix -l, $(LIBS))
 
 # Default rule for compiling object files.

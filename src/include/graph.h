@@ -53,8 +53,8 @@ int       ndl_graph_set(ndl_graph *graph, ndl_ref node, ndl_sym key, ndl_value v
 ndl_value ndl_graph_get(ndl_graph *graph, ndl_ref node, ndl_sym key);
 int       ndl_graph_del(ndl_graph *graph, ndl_ref node, ndl_sym key);
 
-int     ndl_graph_size (ndl_graph *graph, ndl_ref node);
-ndl_sym ndl_graph_index(ndl_graph *graph, ndl_ref node, int index);
+int64_t ndl_graph_size (ndl_graph *graph, ndl_ref node);
+ndl_sym ndl_graph_index(ndl_graph *graph, ndl_ref node, int64_t index);
 
 
 /* Search backreferences.
@@ -64,8 +64,8 @@ ndl_sym ndl_graph_index(ndl_graph *graph, ndl_ref node, int index);
  * size() gets the number of backreferences (including self.)
  * index() gets the nth backreference.
  */
-int     ndl_graph_backref_size (ndl_graph *graph, ndl_ref node);
-ndl_ref ndl_graph_backref_index(ndl_graph *graph, ndl_ref node, int index);
+int64_t ndl_graph_backref_size (ndl_graph *graph, ndl_ref node);
+ndl_ref ndl_graph_backref_index(ndl_graph *graph, ndl_ref node, int64_t index);
 
 
 /* Graph serialization.

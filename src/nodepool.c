@@ -131,7 +131,7 @@ ndl_value ndl_kv_node_val(void *curr) {
     return currkv->val;
 }
 
-void nld_kv_node_print(ndl_kv_node *node) {
+static void nld_kv_node_print(ndl_kv_node *node) {
 
     char keybuff[16], valbuff[16];
     keybuff[15] = valbuff[15] = '\0';
@@ -255,7 +255,7 @@ int ndl_node_pool_get_size(ndl_node_pool *pool, ndl_ref node) {
 ndl_sym ndl_node_pool_get_key(ndl_node_pool *pool, ndl_ref node, int index) {
 
     if (node == NDL_NULL_REF)
-        return -1;
+        return NDL_NULL_SYM;
 
     return ndl_kv_node_index(pool->slots[node], index);
 }
