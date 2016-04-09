@@ -1,7 +1,13 @@
 #ifndef NODEL_ENDIAN_H
 #define NODEL_ENDIAN_H
 
-/* Numbers must be unsigned. */
+/* Numbers must be unsigned.
+ * If you feel like your compiler won't optimize this,
+ * and feel energetic, optimal is
+ * 0xFFFFFFFF00000000 <-> 0x00000000FFFFFFFF, then
+ * 0xFFFF0000FFFF0000 <-> 0x0000FFFF0000FFFF, then
+ * 0xFF00FF00FF00FF00 <-> 0x00FF00FF00FF00FF.
+ */
 #define ENDIAN_SWAP_16(number)                  \
     ((((number) & 0xFF00) >> 8)                 \
      | ((number) & 0x00FF) << 8)

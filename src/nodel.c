@@ -20,11 +20,11 @@
         exit(EXIT_FAILURE);           \
     } while (0)
 
-#define FILE_BUFFER_SIZE (2 << 16)
+#define FILE_BUFFER_SIZE (uint64_t) (2 << 16)
 
-ndl_value parse_sym(char *arg) {
+static inline ndl_value parse_sym(char *arg) {
 
-    int len = strlen(arg);
+    uint64_t len = strlen(arg);
     if (len > 8)
         FAIL("Symbol is too long: '%s. Must be eight characters or fewer.\n", arg);
 
@@ -34,7 +34,7 @@ ndl_value parse_sym(char *arg) {
     return ret;
 }
 
-ndl_value parse_int(char *arg) {
+static inline ndl_value parse_int(char *arg) {
 
     int64_t num;
     sscanf(arg, "%ld", &num);
@@ -42,7 +42,7 @@ ndl_value parse_int(char *arg) {
     return NDL_VALUE(EVAL_INT, num=num);
 }
 
-ndl_value parse_float(char *arg) {
+static inline ndl_value parse_float(char *arg) {
 
     double real;
     sscanf(arg, "%lf", &real);
@@ -50,7 +50,7 @@ ndl_value parse_float(char *arg) {
     return NDL_VALUE(EVAL_FLOAT, real=real);
 }
 
-ndl_value parse_arg(char *arg) {
+static inline ndl_value parse_arg(char *arg) {
 
     if (arg[0] == '\'')
         return parse_sym(arg + 1);
@@ -80,8 +80,8 @@ int main(int argc, char *argv[]) {
     if (in == NULL)
         FAIL("Failed to open file.\n");
 
-    int curr = 0;
-    int used = 1;
+    uint64_t curr = 0;
+    uint64_t used = 1;
 
     while (used > 0) {
         used = fread(&buff[curr], sizeof(char), FILE_BUFFER_SIZE - curr, in);
@@ -109,7 +109,7 @@ int main(int argc, char *argv[]) {
     int i;
     for (i = 0; i < argc; i++) {
         ndl_value arg = parse_arg(argv[i + 2]);
-        argname[3] = (i < 9)? '1' + i : 'A' + i;
+        argname[3] = (char) ((i < 9)? '1' + i : 'A' + i);
         ndl_sym key = NDL_SYM(name);
         ndl_graph_set(graph, local, key, arg);
     }

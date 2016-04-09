@@ -9,14 +9,15 @@ typedef struct ndl_runtime_s ndl_runtime;
  * Runtimes encapsulate a node graph and a number of processes.
  *
  * init()  creates a new runtime.
- * sinit() creates a new runtime using the given graph.
  * kill()  frees all runtime resources and the given runtime.
  *
- * graph() gets the underlying graph of a runtime.
+ * init_using() creates a new runtime using the given graph.
+ * graph()      gets the underlying graph of a runtime.
  */
-ndl_runtime *ndl_runtime_init (void);
-ndl_runtime *ndl_runtime_sinit(ndl_graph *graph);
-void         ndl_runtime_kill (ndl_runtime *runtime);
+ndl_runtime *ndl_runtime_init(void);
+void         ndl_runtime_kill(ndl_runtime *runtime);
+
+ndl_runtime *ndl_runtime_init_using(ndl_graph *graph);
 ndl_graph   *ndl_runtime_graph(ndl_runtime *runtime);
 
 /* Manipulate processes.

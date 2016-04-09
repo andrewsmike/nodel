@@ -380,7 +380,7 @@ ndl_ref ndl_graph_backref_index(ndl_graph *graph, ndl_ref node, int64_t index) {
  *               = 4 + 6*nodes + 17*keys
  */
 
-int ndl_graph_mem_est(ndl_graph *graph) {
+int64_t ndl_graph_mem_est(ndl_graph *graph) {
 
     int nodes = ndl_node_pool_size(graph->pool);
 
@@ -401,29 +401,29 @@ int ndl_graph_mem_est(ndl_graph *graph) {
     var = *((type *) &from[curr]); \
     curr += sizeof(type)
 
-static inline int ndl_graph_to_mem_kvpair(ndl_graph *graph, ndl_sym key, ndl_value val, int maxlen, char *to) {
+static inline int64_t ndl_graph_to_mem_kvpair(ndl_graph *graph, ndl_sym key, ndl_value val, uint64_t maxlen, char *to) {
 
-    int curr = 0;
+    uint64_t curr = 0;
 
-    if ((unsigned) (maxlen - curr) < (sizeof(uint64_t) + sizeof(uint8_t) + sizeof(uint64_t)))
+    if ((maxlen - curr) < (sizeof(uint64_t) + sizeof(uint8_t) + sizeof(uint64_t)))
         return -1;
 
     MEMPUSH(uint64_t, ENDIAN_TO_BIG_64(key));
     MEMPUSH(uint8_t, ((uint8_t) val.type));
     MEMPUSH(int64_t, ENDIAN_TO_BIG_64(((uint64_t) val.num)));
 
-    return curr;
+    return (int64_t) curr;
 }
 
-static inline int ndl_graph_to_mem_node(ndl_graph *graph, int node, int maxlen, char *to) {
+static inline int64_t ndl_graph_to_mem_node(ndl_graph *graph, int node, uint64_t maxlen, char *to) {
 
-    int curr = 0;
+    uint64_t curr = 0;
 
-    uint32_t id = (unsigned) node;
+    uint32_t id = (uint32_t) node;
 
-    uint16_t count = ndl_node_pool_get_size(graph->pool, (ndl_ref) node);
+    uint16_t count = (uint16_t) ndl_node_pool_get_size(graph->pool, (ndl_ref) node);
 
-    if ((unsigned) (maxlen - curr) < (sizeof(id) + sizeof(count)))
+    if ((maxlen - curr) < (sizeof(id) + sizeof(count)))
         return -1;
 
     MEMPUSH(uint32_t, ENDIAN_TO_BIG_32(id));
@@ -436,26 +436,26 @@ static inline int ndl_graph_to_mem_node(ndl_graph *graph, int node, int maxlen, 
 
         ndl_value val = ndl_node_pool_get(graph->pool, (ndl_ref) node, key);
 
-        int used = ndl_graph_to_mem_kvpair(graph, key, val, maxlen - curr, to + curr);
+        int64_t used = ndl_graph_to_mem_kvpair(graph, key, val, maxlen - curr, to + curr);
 
         if (used < 0)
             return -1;
 
-        curr += used;
+        curr += (uint64_t) used;
     }
 
-    return curr;
+    return (int64_t) curr;
 }
 
-int ndl_graph_to_mem(ndl_graph *graph, int maxlen, void *mem) {
+int64_t ndl_graph_to_mem(ndl_graph *graph, uint64_t maxlen, void *mem) {
 
     char *to = (char *) mem;
-    int curr = 0;
+    uint64_t curr = 0;
 
-    uint32_t node_count = ndl_node_pool_size(graph->pool);
+    uint32_t node_count = (uint32_t) ndl_node_pool_size(graph->pool);
     node_count = ENDIAN_TO_BIG_32(node_count);
 
-    if ((unsigned) (maxlen - curr) < sizeof(node_count))
+    if ((maxlen - curr) < sizeof(node_count))
         return -1;
 
     MEMPUSH(uint32_t, node_count);
@@ -464,27 +464,27 @@ int ndl_graph_to_mem(ndl_graph *graph, int maxlen, void *mem) {
 
     while (addr >= 0) {
 
-        int used = ndl_graph_to_mem_node(graph, addr, maxlen - curr, to + curr);
+        int64_t used = ndl_graph_to_mem_node(graph, addr, maxlen - curr, to + curr);
 
         if (used < 0)
             return -1;
 
-        curr += used;
+        curr += (uint64_t) used;
 
         addr = ndl_node_pool_next(graph->pool, addr);
     }
 
-    return curr;
+    return (int64_t) curr;
 }
-static inline int ndl_graph_from_mem_kv(ndl_graph *graph, ndl_ref node, int maxlen, char *from) {
+static inline int64_t ndl_graph_from_mem_kv(ndl_graph *graph, ndl_ref node, uint64_t maxlen, char *from) {
 
-    int curr = 0;
+    uint64_t curr = 0;
 
     uint64_t key;
     uint8_t type;
     uint64_t val;
 
-    if ((unsigned) (maxlen - curr) < sizeof(key) + sizeof(type) + sizeof(val))
+    if ((maxlen - curr) < sizeof(key) + sizeof(type) + sizeof(val))
         return -1;
 
     MEMPOP(uint64_t, key); key = ENDIAN_FROM_BIG_64(key);
@@ -493,26 +493,26 @@ static inline int ndl_graph_from_mem_kv(ndl_graph *graph, ndl_ref node, int maxl
 
     ndl_value value;
     value.type = type;
-    value.num = val;
+    value.num = (ndl_int) val;
 
     if (ndl_node_pool_set(graph->pool, node, key, value) != 0)
         return -1;
 
-    return curr;
+    return (int64_t) curr;
 }
 
-static inline int ndl_graph_from_mem_node(ndl_graph *graph, int maxlen, char *from) {
+static inline int64_t ndl_graph_from_mem_node(ndl_graph *graph, uint64_t maxlen, char *from) {
 
-    int curr = 0;
+    uint64_t curr = 0;
 
     uint32_t id;
     uint16_t count;
 
-    if ((unsigned) (maxlen - curr) < sizeof(id) + sizeof(count))
+    if ((maxlen - curr) < sizeof(id) + sizeof(count))
         return -1;
 
     MEMPOP(uint32_t, id); id = ENDIAN_FROM_BIG_32(id);
-    MEMPOP(uint16_t, count); count = ENDIAN_FROM_BIG_16(count);
+    MEMPOP(uint16_t, count); count = (uint16_t) ENDIAN_FROM_BIG_16(count);
 
     ndl_ref node = ndl_node_pool_alloc_pref(graph->pool, (ndl_ref) id);
 
@@ -522,17 +522,17 @@ static inline int ndl_graph_from_mem_node(ndl_graph *graph, int maxlen, char *fr
     unsigned int i;
     for (i = 0; i < count; i++) {
 
-        int used = ndl_graph_from_mem_kv(graph, node, maxlen - curr, from + curr);
+        int64_t used = ndl_graph_from_mem_kv(graph, node, maxlen - curr, from + curr);
         if (used < 0)
             return -1;
 
-        curr += used;
+        curr += (uint64_t) used;
     }
 
-    return curr;
+    return (int64_t) curr;
 }
 
-ndl_graph *ndl_graph_from_mem(int maxlen, void *mem) {
+ndl_graph *ndl_graph_from_mem(uint64_t maxlen, void *mem) {
 
     ndl_graph *graph = ndl_graph_init();
 
@@ -540,10 +540,10 @@ ndl_graph *ndl_graph_from_mem(int maxlen, void *mem) {
         return NULL;
 
     char *from = mem;
-    int curr = 0;
+    uint64_t curr = 0;
 
     uint32_t count;
-    if ((unsigned) (maxlen - curr) < sizeof(count))
+    if ((maxlen - curr) < sizeof(count))
         return NULL;
 
     count = ENDIAN_FROM_BIG_32(*((uint32_t *) &from[curr]));
@@ -552,13 +552,13 @@ ndl_graph *ndl_graph_from_mem(int maxlen, void *mem) {
     unsigned int i;
     for (i = 0; i < count; i++) {
 
-        int used = ndl_graph_from_mem_node(graph, maxlen - curr, from + curr);
+        int64_t used = ndl_graph_from_mem_node(graph, maxlen - curr, from + curr);
         if (used < 0) {
             ndl_graph_kill(graph);
             return NULL;
         }
 
-        curr += used;
+        curr += (uint64_t) used;
     }
 
     return graph;

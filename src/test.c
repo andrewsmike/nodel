@@ -207,9 +207,7 @@ static int testruntimeadd(void) {
     ndl_ref i2 = ndl_graph_salloc(graph, i1, NDL_SYM("next    "));
     ndl_ref i3 = ndl_graph_salloc(graph, i2, NDL_SYM("next    "));
     ndl_ref i4 = ndl_graph_salloc(graph, i3, NDL_SYM("next    "));
-    ndl_ref i5 = ndl_graph_salloc(graph, i4, NDL_SYM("next    "));
-    ndl_ref i6 = ndl_graph_salloc(graph, i5, NDL_SYM("next    "));
-    ndl_graph_salloc(graph, i6, NDL_SYM("next    "));
+
     SET(i0, "opcode  ", EVAL_SYM, sym=NDL_SYM("load    "));
     SET(i0, "syma    ", EVAL_SYM, sym=NDL_SYM("instpntr"));
     SET(i0, "symb    ", EVAL_SYM, sym=NDL_SYM("const   "));
@@ -229,6 +227,8 @@ static int testruntimeadd(void) {
 
     SET(i3, "opcode  ", EVAL_SYM, sym=NDL_SYM("print   "));
     SET(i3, "syma    ", EVAL_SYM, sym=NDL_SYM("c       "));
+
+    SET(i4, "opcode  ", EVAL_SYM, sym=NDL_SYM("exit    "));
 
     ndl_ref local = testgraphalloc(graph);
     SET(local, "instpntr", EVAL_REF, ref=i0);
@@ -312,7 +312,7 @@ static int testruntimeadd(void) {
     ABOPCODE(node, opcode, a, b);                         \
     SET(node, "symc    ", EVAL_SYM, sym=NDL_SYM(c))
 
-static int testruntimefibo(int steps, char *path) {
+static int testruntimefibo(int steps, const char *path) {
 
     printf("Beginning fibonacci runtime tests.\n");
 
@@ -420,23 +420,23 @@ static int testruntimefibo(int steps, char *path) {
 
         printf("Saving graph in file %s.\n", path);
 
-        int est = ndl_graph_mem_est(graph);
+        int64_t est = ndl_graph_mem_est(graph);
         if (est < 0) {
             fprintf(stderr, "Failed to estimate serialized graph size.\n");
             ndl_runtime_kill(runtime);
             return -1;
         }
 
-        char *buff = malloc(est);
+        char *buff = malloc((uint64_t) est);
         if (buff == NULL) {
             fprintf(stderr, "Failed to allocate serialization buffer.\n");
             ndl_runtime_kill(runtime);
             return -1;
         }
 
-        int size = ndl_graph_to_mem(graph, est, buff);
+        int64_t size = ndl_graph_to_mem(graph, (uint64_t) est, buff);
 
-        printf("Used %d bytes to serialize file. Guessed: %d.\n", size, est);
+        printf("Used %ld bytes to serialize file. Guessed: %ld.\n", size, est);
 
         if (size <= 0) {
             fprintf(stderr, "Failed to serialize graph.\n");
@@ -452,11 +452,11 @@ static int testruntimefibo(int steps, char *path) {
             return -1;
         }
             
-        int written;
+        uint64_t written;
         do {
-            written = fwrite(buff, sizeof(char), size, out);
+            written = fwrite(buff, sizeof(char), (uint64_t) size, out);
             if (written > 0)
-                size -= written;
+                size = size - (int64_t) written;
         } while ((size > 0) && (written > 0));
         fclose(out);
     }
@@ -647,7 +647,7 @@ static int testruntimefork(int threads) {
     return 0;
 }
 
-int testgraphsave(void) {
+static int testgraphsave(void) {
 
     printf("Beginning serialization tests.\n");
 
@@ -669,7 +669,7 @@ int testgraphsave(void) {
     SET(n6, "PNTR    ", EVAL_REF, ref=n3);
     SET(n3, "WOP     ", EVAL_REF, ref=n1);
 
-    int est = ndl_graph_mem_est(graph);
+    int64_t est = ndl_graph_mem_est(graph);
     if (est < 0) {
         fprintf(stderr, "Failed to estimate serialized graph size.\n");
         ndl_graph_kill(graph);
@@ -678,15 +678,15 @@ int testgraphsave(void) {
 
     char buff[est];
 
-    int size = ndl_graph_to_mem(graph, est, buff);
+    int64_t size = ndl_graph_to_mem(graph, (uint64_t) est, buff);
 
-    printf("Est and return value: %d, %d.\n", est, size);
+    printf("Est and return value: %ld, %ld.\n", est, size);
 
     ndl_graph_print(graph);
 
     ndl_graph_kill(graph);
 
-    graph = ndl_graph_from_mem(size, (void *) buff);
+    graph = ndl_graph_from_mem((uint64_t) size, (void *) buff);
 
     printf("Loading the serialized graph.\n");
 
@@ -746,17 +746,49 @@ static int testhashtable(void) {
 
 int main(int argc, const char *argv[]) {
 
+    if (argc < 2) {
+        fprintf(stderr, "Usage: %s testid\n", argv[0]);
+        exit(EXIT_FAILURE);
+    }
+
     printf("Beginning tests.\n");
 
-    int err;
-    err  = testprettyprint();
-    err |= testgraph();
-    err |= testruntimeadd();
-    err |= testruntimefibo(10, NULL);
-    err |= testruntimefork(10);
-    err |= testgraphsave();
-    err |= testslab();
-    err |= testhashtable();
+    int test = atoi(argv[1]);
+
+    int err = 0;
+    switch (test) {
+    case 0:
+        err = testprettyprint();
+        break;
+    case 1:
+        err = testgraph();
+        break;
+    case 2:
+        err = testruntimeadd();
+        break;
+    case 3:
+        err = testruntimefork(10);
+        break;
+    case 4:
+        err = testgraphsave();
+        break;
+    case 5:
+        err = testslab();
+        break;
+    case 6:
+        err = testhashtable();
+        break;
+    case 7:
+        if (argc >= 3)
+            err = testruntimefibo(10, argv[2]);
+        else
+            err = testruntimefibo(10, NULL);
+        break;
+    default:
+        fprintf(stderr, "Unknown test: %d. Valid indices: 0-8.\n", test);
+        err = 1;
+        break;
+    }
 
     printf("Finished tests.\n");
 

@@ -79,9 +79,9 @@ ndl_ref ndl_graph_backref_index(ndl_graph *graph, ndl_ref node, int64_t index);
  * from_mem() retrieves a graph from a block of memory.
  *     Returns NULL on error.
  */
-int        ndl_graph_mem_est (ndl_graph *graph);
-int        ndl_graph_to_mem  (ndl_graph *graph, int maxlen, void *mem);
-ndl_graph *ndl_graph_from_mem(                  int maxlen, void *mem);
+int64_t    ndl_graph_mem_est (ndl_graph *graph);
+int64_t    ndl_graph_to_mem  (ndl_graph *graph, uint64_t maxlen, void *mem);
+ndl_graph *ndl_graph_from_mem(                  uint64_t maxlen, void *mem);
 
 
 /* Graph copy operations.
