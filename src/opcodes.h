@@ -3,7 +3,12 @@
 
 #include "eval.h"
 
-#define DEFOP(name) \
+/* Prototypes for current opcodes.
+ * All defined in opcodes.c, all use
+ * interface defined in eval.h
+ */
+
+#define DEFOP(name)                                                     \
     ndl_eval_result ndl_opcode_ ## name(ndl_graph *graph, ndl_ref local, ndl_ref pc)
 
 /* Nodes and slots. */

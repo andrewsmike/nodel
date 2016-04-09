@@ -27,7 +27,7 @@ Future work
 The perf branch will bring performance improvements (making most things O(1) or,
 at least, O(log(n))), along with added functionality in the form of efficient
 containers for mapping and storage.
-Waiting on this are improvements to runtime, eval, and nodepool. (under works)
+Waiting on this are improvements to runtime and nodepool. (under works)
 Better processes debugging tools are being considered.
 Tools for rooted subgraph copy are in the works.
 Runtime through excall is in the works. Mostly waiting on runtime upgrades from perf branch.

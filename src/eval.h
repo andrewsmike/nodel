@@ -27,7 +27,8 @@
  *
  * These semantics are merely a suggestion.
  * The only strict requirements are that self.instpntr points to the
- * current instruction node.
+ * current instruction node. To launch a process, just create its local frame,
+ * set its arguments, set the self.instpntr, and hand it to runtime.
  */
 
 /* Evaluation keeps track of touched nodes, next frame, fork calls, and more.
@@ -77,20 +78,22 @@ typedef struct ndl_eval_result_s {
 ndl_eval_result ndl_eval(ndl_graph *graph, ndl_ref local);
 
 
-/* Index and access opcode-implementing functions.
+/* Lookup opcode-implementing functions.
  * Opcodes are each implemented as a separate function, with a similar prototype to ndl_eval.
- * Opcodes can be searched for and enumerated.
- * Lookup is currently O(log(n)), until we switch to hashtables.
+ * Opcodes can be queried by key and their keys enumerated.
+ * Runs on a large static size symbol->ndl_eval_func hashtable backend, avoid too much iteration.
+ * Iteration methods return NULL on end-of-list.
  *
- * lookup() gets the evaluation function for the given opcode symbol.
- * size() gets the number of opcodes.
- * index() gets the Nth opcode's symbol.
+ * opcode_lookup() gets the evaluation function for the given opcode symbol.
+ *
+ * opcode_head() gets the pointer to the first opcode key in the hashtable.
+ * opcode_next() gets the pointer to the next opcode key in the hashtable.
  */
 typedef ndl_eval_result (*ndl_eval_func)(ndl_graph *graph, ndl_ref local, ndl_ref pc);
 
-ndl_eval_func ndl_eval_lookup(ndl_sym opcode);
+ndl_eval_func ndl_eval_opcode_lookup(ndl_sym opcode);
 
-int     ndl_eval_size(void);
-ndl_sym ndl_eval_index(int index);
+ndl_sym *ndl_eval_opcodes_head(void);
+ndl_sym *ndl_eval_opcodes_next(ndl_sym *last);
 
 #endif /* NODEL_EVAL_H */
