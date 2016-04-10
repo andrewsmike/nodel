@@ -10,6 +10,7 @@
 #include "runtime.h"
 #include "slab.h"
 #include "hashtable.h"
+#include "rehashtable.h"
 
 static int testprettyprint(void) {
 
@@ -743,6 +744,79 @@ static int testhashtable(void) {
     return 0;
 }
 
+static int testrehashtable(void) {
+
+    printf("Beginning rehashtable tests.\n");
+
+    ndl_rhashtable *table = ndl_rhashtable_init(sizeof(int), sizeof(int), 8);
+    ndl_rhashtable_print(table);
+
+    printf("Size needed by int->int 16 slot rehashtable: %ld.\n",
+           ndl_rhashtable_msize(sizeof(int), sizeof(int), 16));
+
+    printf("First key in rehashtable: %p.\n",
+           ndl_rhashtable_keyhead(table));
+
+    printf("First val in rehashtable: %p.\n",
+           ndl_rhashtable_valhead(table));
+
+    printf("Inserting a couple pairs.\n");
+
+    int a=3, b=6;
+
+    printf("New item: %p.\n", ndl_rhashtable_put(table, &a, &b));
+
+    a ++; b ++;
+    printf("New item: %p.\n", ndl_rhashtable_put(table, &a, &b));
+
+    a ++; b ++;
+    printf("New item: %p.\n", ndl_rhashtable_put(table, &a, &b));
+    ndl_rhashtable_print(table);
+
+    a = 4;
+    int *c = ndl_rhashtable_get(table, &a);
+    printf("Got %d for 4.\n", *c);
+
+    printf("All pairs:\n");
+    c = ndl_rhashtable_keyhead(table);
+    while (c != NULL) {
+
+        printf("Pair: %d:%d.\n", *c, *(c + 1));
+        c = ndl_rhashtable_keynext(table, c);
+    }
+
+    printf("Inserting 100 items with collisions.\n");
+
+    a = b = 0;
+    int i;
+    for (i = 0; i < 100; i++) {
+        a = i + (a * 31) % 17;
+        b = a + (b * 23) % 13;
+        ndl_rhashtable_put(table, &a, &b);
+    }
+    ndl_rhashtable_print(table);
+
+    printf("Removing 60 items with collisions.\n");
+    a = b = 0;
+    for (i = 0; i < 70; i++) {
+        a = i + (a * 31) % 17;
+        b = a + (b * 23) % 13;
+        ndl_rhashtable_del(table, &a);
+    }
+    ndl_rhashtable_print(table);
+
+    printf("Printing entire hashtable.\n");
+    int *key = ndl_rhashtable_keyhead(table);
+    while (key != NULL) {
+        printf("key:value | %d:%d.\n", *key, *(key+1));
+        key = ndl_rhashtable_keynext(table, key);
+    }
+
+    ndl_rhashtable_kill(table);
+
+    return 0;
+}
+
 
 int main(int argc, const char *argv[]) {
 
@@ -779,6 +853,9 @@ int main(int argc, const char *argv[]) {
         err = testhashtable();
         break;
     case 7:
+        err = testrehashtable();
+        break;
+    case 8:
         if (argc >= 3)
             err = testruntimefibo(10, argv[2]);
         else
