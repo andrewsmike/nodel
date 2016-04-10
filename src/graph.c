@@ -4,29 +4,20 @@
 
 #include <stdlib.h>
 
-struct ndl_graph_s {
+typedef struct ndl_graph_s {
 
     int64_t sweep;
     ndl_node_pool *pool;
-};
+} ndl_graph;
 
 ndl_graph *ndl_graph_init(void) {
 
-    ndl_graph *ret = malloc(sizeof(ndl_graph));
+    void *ret = malloc(sizeof(ndl_graph));
 
     if (ret == NULL)
         return NULL;
 
-    ret->pool = ndl_node_pool_init();
-
-    if (ret->pool == NULL) {
-        free(ret);
-        return NULL;
-    }
-
-    ret->sweep = 0;
-
-    return ret;
+    return ndl_graph_minit(ret);
 }
 
 void ndl_graph_kill(ndl_graph *graph) {
@@ -37,6 +28,33 @@ void ndl_graph_kill(ndl_graph *graph) {
     free(graph);
 
     return;
+}
+
+ndl_graph *ndl_graph_minit(void *region) {
+
+    ndl_graph *ret = (ndl_graph*) region;
+
+    ret->pool = ndl_node_pool_init();
+
+    if (ret->pool == NULL)
+        return NULL;
+
+    ret->sweep = 0;
+
+    return ret;
+}
+
+void ndl_graph_mkill(ndl_graph *graph) {
+
+    if (graph->pool != NULL)
+        ndl_node_pool_kill(graph->pool);
+
+    return;
+}
+
+uint64_t ndl_graph_msize(void) {
+
+    return sizeof(ndl_graph);
 }
 
 #define NDL_BACKREF(ref) (*((uint64_t*) "\0b\0\0\0\0b\0") | (((uint64_t) ref) << 16))

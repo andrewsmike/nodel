@@ -9,10 +9,17 @@ typedef struct ndl_graph_s ndl_graph;
  *
  * init() creates a new graph.
  * kill() frees all graph resources and the given graph.
+ *
+ * minit() creates a graph in the given region.
+ * msize() gives the size needed to store a graph.
+ * mkill() frees the graph's resources, but not its region.
  */
 ndl_graph *ndl_graph_init(void);
 void       ndl_graph_kill(ndl_graph *graph);
 
+ndl_graph *ndl_graph_minit(void *region);
+void       ndl_graph_mkill(ndl_graph *graph);
+uint64_t   ndl_graph_msize(void);
 
 /* Allocate a node.
  * Nodes can be marked as 'root' or not. If marked as root, it will not be GC'd,
