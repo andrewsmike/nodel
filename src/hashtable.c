@@ -121,6 +121,9 @@ void *ndl_hashtable_get(ndl_hashtable *table, void *key) {
 
 void *ndl_hashtable_put(ndl_hashtable *table, void *key, void *value) {
 
+    if (table->capacity == table->size)
+        return NULL;
+
     uint64_t hash = ndl_hashtable_hash(table, key);
 
     uint64_t bucketsize = sizeof(ndl_hashtable_bucket) + table->key_size + table->val_size;
@@ -249,6 +252,16 @@ uint64_t ndl_hashtable_cap(ndl_hashtable *table) {
 uint64_t ndl_hashtable_size(ndl_hashtable *table) {
 
     return table->size;
+}
+
+uint64_t ndl_hashtable_key_size(ndl_hashtable *table) {
+
+    return table->key_size;
+}
+
+uint64_t ndl_hashtable_val_size(ndl_hashtable *table) {
+
+    return table->val_size;
 }
 
 void ndl_hashtable_print(ndl_hashtable *table) {

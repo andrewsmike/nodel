@@ -20,7 +20,7 @@
  *
  * TODO: Rearrange such that markers, keys, and vals are
  * groups by type, not by index. Will simplify math and
- * make cleaner.
+ * make cleaner. May be less cache friendly at low loads.
  */
 typedef struct ndl_hashtable_bucket_s {
 
@@ -72,7 +72,7 @@ void *ndl_hashtable_get(ndl_hashtable *table, void *key);
 void *ndl_hashtable_put(ndl_hashtable *table, void *key, void *value);
 int   ndl_hashtable_del(ndl_hashtable *table, void *key);
 
-/* Iterate over elements of a hashtable
+/* Iterate over elements of a hashtable.
  *
  * keyhead() gets the first key in the hashtable.
  *     Returns NULL at end of list.
@@ -92,11 +92,18 @@ void *ndl_hashtable_valnext(ndl_hashtable *table, void *last);
 
 /* Hashtable metadata.
  *
- * cap()  gets the capacity (in pairs) of a hashtable.
  * size() gets the number of used pairs in the hashtable.
+ * cap()  gets the capacity (in pairs) of a hashtable.
+ *
+ * key_size() gets the key_size for the hashtable.
+ * val_size() gets the val_size for the hashtable.
  */
-uint64_t ndl_hashtable_cap (ndl_hashtable *table);
 uint64_t ndl_hashtable_size(ndl_hashtable *table);
+uint64_t ndl_hashtable_cap (ndl_hashtable *table);
+
+uint64_t ndl_hashtable_key_size(ndl_hashtable *table);
+uint64_t ndl_hashtable_val_size(ndl_hashtable *table);
+
 
 /* Print entirety of a hashtable. */
 void ndl_hashtable_print(ndl_hashtable *table);
