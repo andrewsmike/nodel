@@ -13,11 +13,19 @@
  * Automatically grows and shrinks to larger or smaller hashtables
  * based on usage.
  *
- * Currently doubles capacit when (load > 3/4), halves capacity
- * when (load <= 3/16).
  */
 
-typedef struct ndl_rhashtable_s ndl_rhashtable;
+/* Stores the minimum hashtable size, pointer to current hashtable.
+ *
+ * Currently doubles capacity when (load > 3/4), halves capacity
+ * when (load <= 3/16).
+ */
+typedef struct ndl_rhashtable_s {
+
+    uint64_t min_size;
+    ndl_hashtable *table;
+
+} ndl_rhashtable;
 
 
 /* Create and destroy rhashtables.

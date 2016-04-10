@@ -5,26 +5,6 @@
 
 #include "hashtable.h"
 
-struct ndl_rhashtable_s {
-
-    uint64_t min_size;
-    ndl_hashtable *table;
-};
-
-
-/* Create and destroy rhashtables.
- * Rhashtables must be killed before freed.
- *
- * init() allocates and initializes an rhashtable.
- *     if min_size is 0, picks sane default.
- * kill() cleans up and frees an rhashtable.
- *
- * minit() initializes an rhashtable from the given memory region.
- *     Memory region must be at least msize() in bytes.
- * mkill() cleans up an rhashtable, without free()ing the memory.
- * msize() gets the size of an rhashtable with the given parameters.
- */
-
 #define NDL_REHASHTABLE_MIN_DEFAULT 8
 
 ndl_rhashtable *ndl_rhashtable_init(uint64_t key_size, uint64_t val_size, uint64_t min_size) {
