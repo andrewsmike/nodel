@@ -94,7 +94,7 @@ int main(int argc, char *argv[]) {
     if (graph == NULL)
         FAIL("Failed to load graph: Bad file format.\n");
 
-    ndl_runtime *runtime = ndl_runtime_init_using(graph);
+    ndl_runtime *runtime = ndl_runtime_init(graph);
 
     ndl_ref local = ndl_graph_alloc(graph);
     ndl_graph_set(graph, local, NDL_SYM("instpntr"), NDL_VALUE(EVAL_REF, ref=(ndl_ref) 0));

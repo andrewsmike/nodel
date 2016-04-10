@@ -194,7 +194,7 @@ static int testruntimeadd(void) {
 
     printf("Beginning runtime addition tests.\n");
 
-    ndl_runtime *runtime = ndl_runtime_init();
+    ndl_runtime *runtime = ndl_runtime_init(NULL);
 
     if (runtime == NULL) {
         fprintf(stderr, "Failed to allocate runtime.\n");
@@ -234,9 +234,9 @@ static int testruntimeadd(void) {
     ndl_ref local = testgraphalloc(graph);
     SET(local, "instpntr", EVAL_REF, ref=i0);
 
-    int pid = ndl_runtime_proc_init(runtime, local);
+    int64_t pid = ndl_runtime_proc_init(runtime, local);
 
-    printf("[%3d] Process started. Instruction@frame: %3d@%03d.\n", pid, i0, local);
+    printf("[%3ld] Process started. Instruction@frame: %3d@%03d.\n", pid, i0, local);
 
     ndl_runtime_print(runtime);
 
@@ -257,7 +257,7 @@ static int testruntimeadd(void) {
     ndl_graph_print(graph);
 
     ndl_runtime_proc_init(runtime, local2);
-    printf("[%3d] Process started. Instruction@frame: %3d@%03d.\n", pid, i0, local);
+    printf("[%3ld] Process started. Instruction@frame: %3d@%03d.\n", pid, i0, local);
 
     ndl_runtime_step(runtime, 20);
     ndl_runtime_print(runtime);
@@ -317,7 +317,7 @@ static int testruntimefibo(int steps, const char *path) {
 
     printf("Beginning fibonacci runtime tests.\n");
 
-    ndl_runtime *runtime = ndl_runtime_init();
+    ndl_runtime *runtime = ndl_runtime_init(NULL);
 
     if (runtime == NULL) {
         fprintf(stderr, "Failed to allocate runtime.\n");
@@ -406,9 +406,9 @@ static int testruntimefibo(int steps, const char *path) {
     SET(local, "instpntr", EVAL_REF, ref=insts[0]);
     SET(local, "arg1    ", EVAL_INT, num=10);
 
-    int pid = ndl_runtime_proc_init(runtime, local);
+    int64_t pid = ndl_runtime_proc_init(runtime, local);
 
-    printf("[%3d] Process started. Instruction@frame: %3d@%03d.\n", pid, insts[0], local);
+    printf("[%3ld] Process started. Instruction@frame: %3d@%03d.\n", pid, insts[0], local);
 
     ndl_runtime_print(runtime);
 
@@ -543,7 +543,7 @@ static int testruntimefork(int threads) {
 
     printf("Beginning fork tests.\n");
 
-    ndl_runtime *runtime = ndl_runtime_init();
+    ndl_runtime *runtime = ndl_runtime_init(NULL);
 
     if (runtime == NULL) {
         fprintf(stderr, "Failed to allocate runtime.\n");
@@ -632,9 +632,9 @@ static int testruntimefork(int threads) {
     ndl_ref rootlocal = testgraphalloc(graph);
     SET(rootlocal, "instpntr", EVAL_REF, ref=insts[0]);
 
-    int pid = ndl_runtime_proc_init(runtime, rootlocal);
+    int64_t pid = ndl_runtime_proc_init(runtime, rootlocal);
 
-    printf("[%3d] Process started. Instruction@frame: %3d@%03d.\n", pid, insts[0], rootlocal);
+    printf("[%3ld] Process started. Instruction@frame: %3d@%03d.\n", pid, insts[0], rootlocal);
 
     ndl_runtime_print(runtime);
 
