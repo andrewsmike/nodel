@@ -1,6 +1,7 @@
 #include "slab.h"
 
 #include <stdlib.h>
+#include <stdio.h>
 
 #define max(a, b) ((a > b)? a : b)
 
@@ -21,6 +22,31 @@ static inline ndl_slab_item *ndl_slab_get_item(ndl_slab *slab, ndl_slab_index in
 ndl_slab *ndl_slab_init(uint64_t elem_size, uint64_t block_size) {
 
     ndl_slab *slab = malloc(sizeof(ndl_slab));
+    if (slab == NULL)
+        return slab;
+
+    ndl_slab *ret = ndl_slab_minit(slab, elem_size, block_size);
+    if (ret == NULL)
+        free(slab);
+
+    return ret;
+}
+
+void ndl_slab_kill(ndl_slab *slab) {
+
+    if (slab == NULL)
+        return;
+
+    ndl_slab_mkill(slab);
+
+    free(slab);
+
+    return;
+}
+
+ndl_slab *ndl_slab_minit(void *region, uint64_t elem_size, uint64_t block_size) {
+
+    ndl_slab *slab = (ndl_slab *) region;
 
     if (slab == NULL)
         return NULL;
@@ -43,7 +69,7 @@ ndl_slab *ndl_slab_init(uint64_t elem_size, uint64_t block_size) {
     return slab;
 }
 
-void ndl_slab_kill(ndl_slab *slab) {
+void ndl_slab_mkill(ndl_slab *slab) {
 
     if (slab == NULL)
         return;
@@ -55,9 +81,12 @@ void ndl_slab_kill(ndl_slab *slab) {
     if (slab->blocks != NULL)
         free(slab->blocks);
 
-    free(slab);
-
     return;
+}
+
+uint64_t ndl_slab_msize(uint64_t elem_size, uint64_t block_size) {
+
+    return sizeof(ndl_slab);
 }
 
 static inline void ndl_slab_grow(ndl_slab *slab) {
@@ -209,7 +238,7 @@ ndl_slab_index ndl_slab_next(ndl_slab *slab, ndl_slab_index last) {
 }
 
 
-uint64_t ndl_slab_size(ndl_slab *slab) {
+uint64_t ndl_slab_cap(ndl_slab *slab) {
 
     if (slab == NULL)
         return 0;
@@ -217,19 +246,37 @@ uint64_t ndl_slab_size(ndl_slab *slab) {
     return slab->block_count * slab->block_size;
 }
 
-uint64_t ndl_slab_elem_count(ndl_slab *slab) {
+uint64_t ndl_slab_size(ndl_slab *slab) {
 
     if (slab == NULL)
         return 0;
 
     return slab->elem_count;
-
 }
 
-uint64_t ndl_slab_free_count(ndl_slab *slab) {
+void ndl_slab_print(ndl_slab *slab) {
 
-    if (slab == NULL)
-        return 0;
+    printf("Printing slab.\n");
+    printf("Elem, block size: %ld, %ld.\n", slab->elem_size, slab->block_size);
+    printf("Block count, cap: %ld, %ld.\n", slab->block_count, slab->block_cap);
+    printf("Elem count: %ld.\n", slab->elem_count);
+    printf("Free list head: %ld.\n", slab->free_head);
 
-    return (slab->block_count * slab->block_size) - slab->elem_count;
+    uint64_t i;
+    for (i = 0; i < slab->block_count; i++) {
+
+        printf("Block %ld:\n", i);
+
+        uint8_t *block = (uint8_t *) slab->blocks[i];
+        ndl_slab_item *item;
+
+        uint64_t index;
+        for (index = 0; index < slab->block_size; index++) {
+
+            item = (ndl_slab_item *) (block + index * (slab->elem_size + sizeof(ndl_slab_item)));
+            printf("[next: %03ld]\n", item->next_free);
+        }
+    }
+
+    return;
 }

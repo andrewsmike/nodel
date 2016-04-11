@@ -485,9 +485,9 @@ static int testslab(void) {
     }
 
     printf("Slab (used+unused)/size: (%ld+%ld)/%ld.\n",
-           ndl_slab_elem_count(slab),
-           ndl_slab_free_count(slab),
-           ndl_slab_size(slab));
+           ndl_slab_size(slab),
+           ndl_slab_cap(slab) - ndl_slab_size(slab),
+           ndl_slab_cap(slab));
 
     ndl_slab_index a = ndl_slab_head(slab);
     ndl_slab_index b = ndl_slab_next(slab, a);
@@ -502,6 +502,7 @@ static int testslab(void) {
     kv_pair *kva = ndl_slab_get(slab, c);
     kv_pair *kvb = ndl_slab_get(slab, d);
     printf("Allocated location: %p, %p.\n", (void *) kva, (void *) kvb);
+    ndl_slab_print(slab);
 
     printf("Allocating 4ki nodes.\n");
     uint64_t i;
@@ -512,27 +513,28 @@ static int testslab(void) {
     ndl_slab_free(slab, d);
 
     printf("Slab (used+unused)/size: (%ld+%ld)/%ld.\n",
-           ndl_slab_elem_count(slab),
-           ndl_slab_free_count(slab),
-           ndl_slab_size(slab));
+           ndl_slab_size(slab),
+           ndl_slab_cap(slab) - ndl_slab_size(slab),
+           ndl_slab_cap(slab));
     printf("Got %ld after freeing %ld.\n", ndl_slab_alloc(slab), d);
 
     printf("Freeing 4k nodes.\n");
     for (i = 0; i < 4000; i++)
         ndl_slab_free(slab, i + 10);
     printf("Slab (used+unused)/size: (%ld+%ld)/%ld.\n",
-           ndl_slab_elem_count(slab),
-           ndl_slab_free_count(slab),
-           ndl_slab_size(slab));
+           ndl_slab_size(slab),
+           ndl_slab_cap(slab) - ndl_slab_size(slab),
+           ndl_slab_cap(slab));
+    ndl_slab_print(slab);
 
     printf("Allocating 2k nodes.\n");
     for (i = 0; i < 4096; i++)
         ndl_slab_alloc(slab);
 
-        printf("Slab (used+unused)/size: (%ld+%ld)/%ld.\n",
-           ndl_slab_elem_count(slab),
-           ndl_slab_free_count(slab),
-           ndl_slab_size(slab));
+    printf("Slab (used+unused)/size: (%ld+%ld)/%ld.\n",
+           ndl_slab_size(slab),
+           ndl_slab_cap(slab) - ndl_slab_size(slab),
+           ndl_slab_cap(slab));
 
     ndl_slab_kill(slab);
 

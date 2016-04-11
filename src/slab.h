@@ -65,14 +65,23 @@ typedef uint64_t ndl_slab_index;
  *     If NDL_NULL_INDEX is given for block_size, it picks block_size
  *     such that block_size * elem_size ~= some nice constant.
  * kill() frees the entire slab structure.
+ *
+ * minit() creates a slab with the given parameters in the given
+ *     region of memory. See init() for further details.
+ * mkill() frees all slab resources, but not the slab itself.
+ * msize() gets the size of the slab datastructure.
  */
 ndl_slab *ndl_slab_init(uint64_t elem_size, uint64_t block_size);
 void      ndl_slab_kill(ndl_slab *slab);
 
+ndl_slab *ndl_slab_minit(void *region, uint64_t elem_size, uint64_t block_size);
+void      ndl_slab_mkill(ndl_slab *slab);
+uint64_t  ndl_slab_msize(uint64_t elem_size, uint64_t block_size);
+
 /* Allocation and indexing of slab elements.
  *
  * alloc() allocates a new element. Returns NDL_NULL_INDEX on error.
- * free()  frees an element. Does not fail.
+ * free() frees an element. Does not fail.
  * index() Returns a pointer to the element with the given index.
  *     Returns NULL on error.
  */
@@ -91,12 +100,13 @@ ndl_slab_index ndl_slab_next(ndl_slab *slab, ndl_slab_index last);
 
 /* Slab metadata.
  *
- * size()       returns the total current size (in elems) of the slab.
- * elem_count() returns the number of active elements in the current slab.
- * free_count() returns the number of free elemnts in the current slab.
+ * size() returns the number of active elements in the current slab.
+ * cap() returns the total current size (in elems) of the slab.
  */
-uint64_t ndl_slab_size      (ndl_slab *slab);
-uint64_t ndl_slab_elem_count(ndl_slab *slab);
-uint64_t ndl_slab_free_count(ndl_slab *slab);
+uint64_t ndl_slab_size(ndl_slab *slab);
+uint64_t ndl_slab_cap (ndl_slab *slab);
+
+/* Print the entirety of the slab. */
+void ndl_slab_print(ndl_slab *slab);
 
 #endif /* NODEL_SLAB_H */
