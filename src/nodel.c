@@ -114,12 +114,14 @@ int main(int argc, char *argv[]) {
         ndl_graph_set(graph, local, key, arg);
     }
 
-    ndl_runtime_proc_init(runtime, local);
-
-    while (ndl_runtime_proc_count(runtime) > 0) {
-        ndl_runtime_step(runtime, 1000);
-        ndl_graph_clean(graph);
+    int64_t pid = ndl_runtime_proc_init(runtime, local);
+    if (pid < 0) {
+        fprintf(stderr, "Failed to create process.\n");
+        exit(EXIT_FAILURE);
     }
+
+    ndl_runtime_proc_resume(runtime, pid);
+    ndl_runtime_run_for(runtime, -1);
 
     printf("Exiting.\n");
 

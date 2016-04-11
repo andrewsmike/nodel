@@ -235,16 +235,13 @@ static int testruntimeadd(void) {
     SET(local, "instpntr", EVAL_REF, ref=i0);
 
     int64_t pid = ndl_runtime_proc_init(runtime, local);
+    ndl_runtime_proc_resume(runtime, pid);
 
     printf("[%3ld] Process started. Instruction@frame: %3d@%03d.\n", pid, i0, local);
 
     ndl_runtime_print(runtime);
 
-    ndl_runtime_step(runtime, 1); ndl_runtime_print(runtime);
-    ndl_runtime_step(runtime, 1); ndl_runtime_print(runtime);
-    ndl_runtime_step(runtime, 1); ndl_runtime_print(runtime);
-    ndl_runtime_step(runtime, 1); ndl_runtime_print(runtime);
-    ndl_runtime_step(runtime, 1); ndl_runtime_print(runtime);
+    ndl_runtime_run_for(runtime, -1);
 
     ndl_graph_print(graph);
 
@@ -256,13 +253,13 @@ static int testruntimeadd(void) {
     SET(local2, "instpntr", EVAL_REF, ref=i0);
     ndl_graph_print(graph);
 
-    ndl_runtime_proc_init(runtime, local2);
+    pid = ndl_runtime_proc_init(runtime, local2);
+    ndl_runtime_proc_resume(runtime, pid);
     printf("[%3ld] Process started. Instruction@frame: %3d@%03d.\n", pid, i0, local);
 
-    ndl_runtime_step(runtime, 20);
+    ndl_runtime_run_for(runtime, 10000);
     ndl_runtime_print(runtime);
     ndl_graph_print(graph);
-
 
     ndl_runtime_kill(runtime);
 
@@ -407,12 +404,17 @@ static int testruntimefibo(int steps, const char *path) {
     SET(local, "arg1    ", EVAL_INT, num=10);
 
     int64_t pid = ndl_runtime_proc_init(runtime, local);
+    ndl_runtime_proc_resume(runtime, pid);
 
     printf("[%3ld] Process started. Instruction@frame: %3d@%03d.\n", pid, insts[0], local);
 
     ndl_runtime_print(runtime);
 
-    ndl_runtime_step(runtime, 100); ndl_runtime_print(runtime);
+    int i;
+    for (i = 0; i < 100; i++)
+        ndl_runtime_run_finish(runtime, -1);
+
+    ndl_runtime_print(runtime);
 
     ndl_graph_print(graph);
 
@@ -635,12 +637,16 @@ static int testruntimefork(int threads) {
     SET(rootlocal, "instpntr", EVAL_REF, ref=insts[0]);
 
     int64_t pid = ndl_runtime_proc_init(runtime, rootlocal);
+    ndl_runtime_proc_resume(runtime, pid);
 
     printf("[%3ld] Process started. Instruction@frame: %3d@%03d.\n", pid, insts[0], rootlocal);
 
     ndl_runtime_print(runtime);
 
-    ndl_runtime_step(runtime, 4 + 6*10);
+    int i;
+    for (i = 0; i < 4 + 6*10; i++)
+        ndl_runtime_run_finish(runtime, -1);
+
     ndl_runtime_print(runtime);
 
     ndl_graph_print(graph);
