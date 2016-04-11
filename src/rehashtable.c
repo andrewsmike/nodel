@@ -117,6 +117,9 @@ static inline void ndl_rhashtable_shrink(ndl_rhashtable *table) {
     uint64_t size = ndl_hashtable_size(table->table);
     uint64_t cap = ndl_hashtable_cap(table->table);
 
+    if (cap/2 < table->min_size)
+        return;
+
     if ((size * 16) > (cap * 3))
         return;
 
