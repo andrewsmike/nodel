@@ -15,8 +15,8 @@ typedef struct ndl_slabheap_node_s {
 
     ndl_slab_index sid;
 
-    ndl_slabheap_node *parent;
-    ndl_slabheap_node *left, *right;
+    struct ndl_slabheap_node_s *parent;
+    struct ndl_slabheap_node_s *left, *right;
 
     uint8_t data[];
 
@@ -29,6 +29,7 @@ typedef struct ndl_slabheap_s {
     uint64_t data_size;
     ndl_slabheap_cmp_func compare;
 
+    ndl_slabheap_node *root, *foot;
     uint8_t slab[];
 
 } ndl_slabheap;
@@ -44,22 +45,27 @@ typedef struct ndl_slabheap_s {
  * mkill() cleans up a heap without freeing it.
  * msize() gets the size needed to store a heap.
  */
-ndl_slabheap *ndl_slabheap_init(uint64_t data_size, ndl_heap_cmp_func compare,
+ndl_slabheap *ndl_slabheap_init(uint64_t data_size, ndl_slabheap_cmp_func compare,
                                 uint64_t slab_block_size);
-void      ndl_slabheap_kill(ndl_slabheap *heap);
+void          ndl_slabheap_kill(ndl_slabheap *heap);
 
 ndl_slabheap *ndl_slabheap_minit(void *region, uint64_t data_size,
-                                 ndl_heap_cmp_func compare, uint64_t slab_block_size);
-void      ndl_slabheap_mkill(ndl_slabheap *heap);
-uint64_t  ndl_slabheap_msize(uint64_t data_size, ndl_heap_cmp_func compare,
-                             uint64_t slab_block_size);
+                                 ndl_slabheap_cmp_func compare, uint64_t slab_block_size);
+void     ndl_slabheap_mkill(ndl_slabheap *heap);
+uint64_t ndl_slabheap_msize(uint64_t data_size, ndl_slabheap_cmp_func compare,
+                            uint64_t slab_block_size);
 
 /* Get head, peek head, put, and delete items from the heap.
  * Pointers are stable; you don't have to re-get()
  * whenever you put or delete.
  *
- * head() returns the top data and frees it.
+ * head() returns the top data and frees it. The pointer will be valid
+ *    until the next put operation.
  * peek() returns a pointer to the top data without deleting it.
+ *
+ * readj() Readjusts a modified node, moving it up or down in the
+ *     heap as needed.
+ *
  * put() adds a node to the heap.
  * del() deletes a node from the heap.
  *     Returns 0 on success, -1 on error.
@@ -67,8 +73,10 @@ uint64_t  ndl_slabheap_msize(uint64_t data_size, ndl_heap_cmp_func compare,
 void *ndl_slabheap_head(ndl_slabheap *heap);
 void *ndl_slabheap_peek(ndl_slabheap *heap);
 
+void  ndl_slabheap_readj(ndl_slabheap *heap, void *data);
+
 void *ndl_slabheap_put(ndl_slabheap *heap, void *data);
-int   ndl_slabheap_del(ndl_slabheap *heap, void *node);
+int   ndl_slabheap_del(ndl_slabheap *heap, void *data);
 
 /* Heap element iteration.
  * Items unordered.
@@ -90,7 +98,7 @@ void *ndl_slabheap_node_next(ndl_slabheap *heap, void *prev);
  * cap() gets the *current* capacity, without growing the slab.
  */
 uint64_t              ndl_slabheap_data_size(ndl_slabheap *heap);
-ndl_slabheap_cmp_func ndl_slabheap_cmp_func (ndl_slabheap *heap);
+ndl_slabheap_cmp_func ndl_slabheap_compare  (ndl_slabheap *heap);
 
 uint64_t ndl_slabheap_size(ndl_slabheap *heap);
 uint64_t ndl_slabheap_cap (ndl_slabheap *heap);
