@@ -7,12 +7,16 @@
 
 ndl_hashtable *ndl_hashtable_init(uint64_t key_size, uint64_t val_size, uint64_t capacity) {
 
-    ndl_hashtable *table = malloc(ndl_hashtable_msize(key_size, val_size, capacity));
+    void *region = malloc(ndl_hashtable_msize(key_size, val_size, capacity));
 
-    if (table == NULL)
+    if (region == NULL)
         return NULL;
 
-    return ndl_hashtable_minit(table, key_size, val_size, capacity);
+    ndl_hashtable *ret = ndl_hashtable_minit(region, key_size, val_size, capacity);
+    if (ret == NULL)
+        free(region);
+
+    return ret;
 }
 
 void ndl_hashtable_kill(ndl_hashtable *table) {
