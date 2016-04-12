@@ -234,15 +234,29 @@ static int testruntimeadd(void) {
     ndl_ref local = testgraphalloc(graph);
     SET(local, "instpntr", EVAL_REF, ref=i0);
 
+    ndl_graph_print(graph);
+
     int64_t pid = ndl_runtime_proc_init(runtime, local);
-    ndl_runtime_proc_resume(runtime, pid);
+    if (pid < 0) {
+        fprintf(stderr, "Failed to create process.\n");
+        exit(EXIT_FAILURE);
+    }
+
+    int err = ndl_runtime_proc_resume(runtime, pid);
+    if (err != 0) {
+        fprintf(stderr, "Failed to resume process.\n");
+        exit(EXIT_FAILURE);
+    }
 
     printf("[%3ld] Process started. Instruction@frame: %3d@%03d.\n", pid, i0, local);
 
+    err = ndl_runtime_run_for(runtime, -1);
+    if (err != 0) {
+        fprintf(stderr, "Failed to run to infinity.\n");
+        exit(EXIT_FAILURE);
+    }
+
     ndl_runtime_print(runtime);
-
-    ndl_runtime_run_for(runtime, -1);
-
     ndl_graph_print(graph);
 
     printf("Testing GC and infinite loop.\n");
@@ -257,7 +271,7 @@ static int testruntimeadd(void) {
     ndl_runtime_proc_resume(runtime, pid);
     printf("[%3ld] Process started. Instruction@frame: %3d@%03d.\n", pid, i0, local);
 
-    ndl_runtime_run_for(runtime, 10000);
+    ndl_runtime_run_for(runtime, -1);
     ndl_runtime_print(runtime);
     ndl_graph_print(graph);
 
@@ -401,7 +415,7 @@ static int testruntimefibo(int steps, const char *path) {
 
     ndl_ref local = testgraphalloc(graph);
     SET(local, "instpntr", EVAL_REF, ref=insts[0]);
-    SET(local, "arg1    ", EVAL_INT, num=10);
+    SET(local, "arg1    ", EVAL_INT, num=40);
 
     int64_t pid = ndl_runtime_proc_init(runtime, local);
     ndl_runtime_proc_resume(runtime, pid);
@@ -410,9 +424,7 @@ static int testruntimefibo(int steps, const char *path) {
 
     ndl_runtime_print(runtime);
 
-    int i;
-    for (i = 0; i < 100; i++)
-        ndl_runtime_run_finish(runtime, -1);
+    ndl_runtime_run_for(runtime, -1);
 
     ndl_runtime_print(runtime);
 
@@ -643,9 +655,7 @@ static int testruntimefork(int threads) {
 
     ndl_runtime_print(runtime);
 
-    int i;
-    for (i = 0; i < 4 + 6*10; i++)
-        ndl_runtime_run_finish(runtime, -1);
+    ndl_runtime_run_for(runtime, 10000);
 
     ndl_runtime_print(runtime);
 

@@ -23,11 +23,11 @@ OBJ_PATHS=$(addprefix $(SRC)/, $(addsuffix .o, $(SRC_OBJS)))
 SRC_PATHS=$(addprefix $(SRC)/, $(addsuffix .c, $(SRC_OBJS)))
 INC_PATHS=$(addprefix $(INC)/, $(addsuffix .h, $(INC_OBJS)))
 
-LIBS=m rt
+LIBS=m
 
 # Compiler flags.
 CCFLAGS=-std=gnu11 -I$(INC) -Wall -Wextra -Wno-unused-parameter -Wformat -Wpedantic -Wconversion -Wmissing-prototypes -Werror
-DEBUG= #-O2 -g -pg
+DEBUG=#-pg -g -Ofast
 LIBFLAGS=$(addprefix -l, $(LIBS))
 
 # Default rule for compiling object files.

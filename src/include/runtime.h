@@ -105,10 +105,10 @@ int ndl_runtime_proc_setwait(ndl_runtime *runtime, int64_t pid, ndl_ref node);
 /* Run the runtime using the scheduler system and events.
  * For an explanation of the scheduler and event system, see above.
  *
- * run_step() runs each ready process for at most one cycle.
- * run_finish() runs each ready process until no processes are ready, or
+ * run_ready() runs each ready process until no processes are ready, or
  *     the provided timeout is reached. Timeout in usec, ignores if negative.
- *     If the timeout is reached, returns -1. Else, 0.
+ *     Timeout resolution is pretty low.
+ *     Returns zero on success, -1 on error, and 1 on timeout. 
  *
  * run_sleep() sleeps the thread until the next event is ready.
  *     Returns number of usec slept, or negative on error.
@@ -120,8 +120,7 @@ int ndl_runtime_proc_setwait(ndl_runtime *runtime, int64_t pid, ndl_ref node);
  *     is reached, or there are events left. If timeout is negative,
  *     does not use timeout.
  */
-int ndl_runtime_run_step  (ndl_runtime *runtime);
-int ndl_runtime_run_finish(ndl_runtime *runtime, int64_t timeout);
+int ndl_runtime_run_ready(ndl_runtime *runtime, int64_t timeout);
 
 int64_t ndl_runtime_run_sleep (ndl_runtime *runtime, int64_t timeout);
 int64_t ndl_runtime_run_timeto(ndl_runtime *runtime);

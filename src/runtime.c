@@ -288,7 +288,7 @@ static inline int ndl_runtime_freq_add(ndl_runtime *runtime, int64_t pid, uint64
 
         ndl_clock_event cevent;
         cevent.when = ndl_runtime_run_usec_to_ts((int64_t) 0);
-        cevent.head_pid = pid;
+        cevent.head_pid = -1;
 
         event = ndl_slabheap_put(runtime->cevents, &cevent);
         if (event == NULL)
@@ -306,9 +306,11 @@ static inline int ndl_runtime_freq_add(ndl_runtime *runtime, int64_t pid, uint64
             return -1;
     }
 
+    if (head) head->event_prev_pid = pid;
     proc->event_next_pid = event->head_pid;
     proc->event_prev_pid = -1;
-    if (head) head->event_prev_pid = pid;
+    proc->state = ESTATE_RUNNING;
+    proc->event_group.sleeping = event;
     event->head_pid = pid;
 
     return 0;
@@ -623,7 +625,7 @@ static inline int ndl_runtime_run_checkmod(ndl_runtime *runtime, ndl_ref ref) {
 
     return 0;
 }
-/*
+
 static void ndl_runtime_tick(ndl_runtime *runtime, int64_t pid) {
 
     ndl_process *proc = ndl_rhashtable_get(runtime->procs, &pid);
@@ -734,28 +736,108 @@ static void ndl_runtime_tick(ndl_runtime *runtime, int64_t pid) {
             printf("[%3ld] Failed to kill process. Here be zombies.\n", pid);
     }
 }
-*/
-int ndl_runtime_run_step(ndl_runtime *runtime) {
-    /* TODO: run_step. */
-    return -1;
-}
-
-int ndl_runtime_run_finish(ndl_runtime *runtime, int64_t timeout) {
-
-    /* TODO: run_finish. */
-    return -1;
-}
 
 #define min(a, b) ((a < b)? a : b)
 
-int64_t ndl_runtime_run_sleep(ndl_runtime *runtime, int64_t timeout) {
+#define NDL_RUNTIME_RUN_RESOLUTION 20
+
+static inline int ndl_runtime_run_event(ndl_runtime *runtime, ndl_clock_event *head) {
+
+    int64_t pid = head->head_pid;
+    ndl_process *curr = ndl_rhashtable_get(runtime->procs, &pid);
+    if (curr == NULL)
+        return -1;
+
+    if (curr->state == ESTATE_SLEEPING)
+        return ndl_runtime_proc_resume(runtime, pid);
+
+    int64_t freq = (int64_t) curr->freq;
+
+    int64_t next_pid;
+    int count;
+    do {
+        curr = ndl_rhashtable_get(runtime->procs, &pid);
+        if (curr == NULL)
+            return -1;
+
+        next_pid = curr->event_next_pid;
+
+        ndl_runtime_tick(runtime, pid);
+
+        count++;
+
+        pid = next_pid;
+
+    } while (pid != -1);
+
+    head->when = ndl_runtime_run_ts_add(head->when,
+                                        ndl_runtime_run_usec_to_ts(freq));
+    ndl_slabheap_readj(runtime->cevents, head);
+
+    return count;
+}
+
+static inline int ndl_runtime_crun(ndl_runtime *runtime, int64_t timeout, struct timespec start) {
+
+    struct timespec end = ndl_runtime_run_usec_to_ts(timeout);
+    end = ndl_runtime_run_ts_add(end, start);
+
+    int rcount = 0;
+    int err = 0;
+    while (err >= 0) {
+        ndl_clock_event *head = ndl_slabheap_peek(runtime->cevents);
+        if (head == NULL)
+            return 0;
+
+        if (ndl_runtime_run_ts_sub(head->when, start).tv_sec < 0) {
+
+            err = ndl_runtime_run_event(runtime, head);
+            if (err < 0)
+                return err;
+
+            rcount += err;
+        } else {
+
+            return 0;
+        }
+
+        if (rcount > NDL_RUNTIME_RUN_RESOLUTION) {
+            err = clock_gettime(CLOCK_BOOTTIME, &start);
+            rcount = 0;
+        }
+    }
+
+    return err;
+}
+
+int ndl_runtime_run_ready(ndl_runtime *runtime, int64_t timeout) {
 
     struct timespec start;
     int err = clock_gettime(CLOCK_BOOTTIME, &start);
     if (err != 0)
         return err;
 
-    int64_t timeto = ndl_runtime_run_timeto(runtime);
+    return ndl_runtime_crun(runtime, timeout, start);
+}
+
+static inline int64_t ndl_runtime_run_ctimeto(ndl_runtime *runtime, struct timespec now) {
+
+    ndl_clock_event *head = ndl_slabheap_peek(runtime->cevents);
+    if (head == NULL)
+        return -1;
+
+    now = ndl_runtime_run_ts_sub(head->when, now);
+    if (now.tv_sec < 0)
+        return 0;
+
+    return ndl_runtime_run_ts_to_usec(now);
+}
+
+#define NDL_RUNTIME_RUN_MIN_SLEEP_USEC 100
+
+static int64_t ndl_runtime_run_csleep(ndl_runtime *runtime, int64_t timeout, struct timespec start) {
+
+    int64_t timeto = ndl_runtime_run_ctimeto(runtime, start);
     if (timeto < 0)
         return -1;
 
@@ -764,7 +846,13 @@ int64_t ndl_runtime_run_sleep(ndl_runtime *runtime, int64_t timeout) {
 
     if (timeout <= 0) timeout = timeto;
 
-    err = usleep((uint32_t) min(((uint64_t) timeto), ((uint64_t) timeout)));
+    int err;
+    uint32_t time = (uint32_t) min((uint64_t) timeto, (uint64_t) timeout);
+    if (time > NDL_RUNTIME_RUN_MIN_SLEEP_USEC)
+        err = usleep(time);
+    else
+        return 0;
+
     if (err != 0)
         return err;
 
@@ -778,10 +866,24 @@ int64_t ndl_runtime_run_sleep(ndl_runtime *runtime, int64_t timeout) {
     return (int64_t) ndl_runtime_run_ts_to_usec(end);
 }
 
+int64_t ndl_runtime_run_sleep(ndl_runtime *runtime, int64_t timeout) {
+
+    struct timespec start;
+    int err = clock_gettime(CLOCK_BOOTTIME, &start);
+    if (err != 0)
+        return err;
+
+    return ndl_runtime_run_csleep(runtime, timeout, start);
+}
+
 int64_t ndl_runtime_run_timeto(ndl_runtime *runtime) {
 
-    /* TODO: Timeto */
-    return -1;
+    struct timespec now;
+    int err = clock_gettime(CLOCK_BOOTTIME, &now);
+    if (err != 0)
+        return err;
+
+    return ndl_runtime_run_ctimeto(runtime, now);
 }
 
 int ndl_runtime_run_for(ndl_runtime *runtime, int64_t timeout) {
@@ -792,13 +894,18 @@ int ndl_runtime_run_for(ndl_runtime *runtime, int64_t timeout) {
         return err;
 
     struct timespec end = ndl_runtime_run_usec_to_ts(timeout);
-    end = ndl_runtime_run_ts_add(curr, end);
+    if (end.tv_sec >= 0) {
+        end = ndl_runtime_run_ts_add(curr, end);
+    } else {
+        end.tv_sec = LONG_MAX;
+        end.tv_nsec = 0;
+    }
 
     struct timespec diff = ndl_runtime_run_ts_sub(end, curr);
 
     while (diff.tv_sec >= 0) {
 
-        err = ndl_runtime_run_finish(runtime, ndl_runtime_run_ts_to_usec(diff));
+        err = ndl_runtime_run_ready(runtime, ndl_runtime_run_ts_to_usec(diff));
         if (err != 0)
             return err;
 
@@ -816,7 +923,7 @@ int ndl_runtime_run_for(ndl_runtime *runtime, int64_t timeout) {
 
         int64_t maxtime = ndl_runtime_run_ts_to_usec(diff);
 
-        int64_t time = ndl_runtime_run_sleep(runtime, maxtime);
+        int64_t time = ndl_runtime_run_csleep(runtime, maxtime, curr);
         if (time == -1)
             return -1;
 
@@ -828,7 +935,7 @@ int ndl_runtime_run_for(ndl_runtime *runtime, int64_t timeout) {
     return 0;
 }
 
-#define NDL_RUNTIME_FREQ_DEFAULT 30
+#define NDL_RUNTIME_FREQ_DEFAULT 10
 int64_t ndl_runtime_proc_init(ndl_runtime *runtime, ndl_ref local) {
 
     int64_t pid = runtime->next_pid++;
@@ -893,5 +1000,6 @@ int ndl_runtime_dead(ndl_runtime *runtime) {
 void ndl_runtime_print(ndl_runtime *runtime) {
 
     printf("Printing runtime.\n");
-    
+    ndl_rhashtable_print(runtime->procs);
+    ndl_slabheap_print(runtime->cevents);
 }
