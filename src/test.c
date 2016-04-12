@@ -11,6 +11,7 @@
 #include "slab.h"
 #include "hashtable.h"
 #include "rehashtable.h"
+#include "eval.h"
 
 static int testprettyprint(void) {
 
@@ -275,6 +276,7 @@ static int testruntimeadd(void) {
     ndl_runtime_print(runtime);
     ndl_graph_print(graph);
 
+    ndl_eval_opcodes_cleanup();
     ndl_runtime_kill(runtime);
 
     return 0;
@@ -415,7 +417,7 @@ static int testruntimefibo(int steps, const char *path) {
 
     ndl_ref local = testgraphalloc(graph);
     SET(local, "instpntr", EVAL_REF, ref=insts[0]);
-    SET(local, "arg1    ", EVAL_INT, num=40);
+    SET(local, "arg1    ", EVAL_INT, num=steps);
 
     int64_t pid = ndl_runtime_proc_init(runtime, local);
     ndl_runtime_proc_resume(runtime, pid);
@@ -439,6 +441,7 @@ static int testruntimefibo(int steps, const char *path) {
         if (est < 0) {
             fprintf(stderr, "Failed to estimate serialized graph size.\n");
             ndl_runtime_kill(runtime);
+            ndl_eval_opcodes_cleanup();
             return -1;
         }
 
@@ -446,6 +449,7 @@ static int testruntimefibo(int steps, const char *path) {
         if (buff == NULL) {
             fprintf(stderr, "Failed to allocate serialization buffer.\n");
             ndl_runtime_kill(runtime);
+            ndl_eval_opcodes_cleanup();
             return -1;
         }
 
@@ -455,6 +459,7 @@ static int testruntimefibo(int steps, const char *path) {
 
         if (size <= 0) {
             fprintf(stderr, "Failed to serialize graph.\n");
+            ndl_eval_opcodes_cleanup();
             ndl_runtime_kill(runtime);
             return -1;
         }
@@ -463,6 +468,7 @@ static int testruntimefibo(int steps, const char *path) {
 
         if (out == NULL) {
             fprintf(stderr, "Failed to open file.\n");
+            ndl_eval_opcodes_cleanup();
             ndl_runtime_kill(runtime);
             return -1;
         }
@@ -477,6 +483,7 @@ static int testruntimefibo(int steps, const char *path) {
     }
 
     ndl_runtime_kill(runtime);
+    ndl_eval_opcodes_cleanup();
 
     return 0;
 }
@@ -661,6 +668,7 @@ static int testruntimefork(int threads) {
 
     ndl_graph_print(graph);
 
+    ndl_eval_opcodes_cleanup();
     ndl_runtime_kill(runtime);
 
     return 0;
@@ -878,6 +886,12 @@ int main(int argc, const char *argv[]) {
             err = testruntimefibo(10, argv[2]);
         else
             err = testruntimefibo(10, NULL);
+        break;
+    case 9:
+        if (argc >= 3)
+            err = testruntimefibo(atoi(argv[2]), NULL);
+        else
+            err = testruntimefibo(1000000, NULL);
         break;
     default:
         fprintf(stderr, "Unknown test: %d. Valid indices: 0-8.\n", test);
