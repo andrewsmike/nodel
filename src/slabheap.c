@@ -260,6 +260,8 @@ static inline void ndl_slabheap_insert(ndl_slabheap *heap, ndl_slabheap_node *no
 
         heap->root = node;
         heap->foot = node;
+
+        return;
     }
 
     if (heap->foot->left == NULL) {
@@ -280,10 +282,9 @@ static inline void ndl_slabheap_delete(ndl_slabheap *heap, ndl_slabheap_node *no
     if (heap->root == NULL)
         return;
 
-    ndl_slabheap_node *from;
+    ndl_slabheap_node *from = NULL;
     if (heap->foot->left != NULL) {
 
-        from = heap->foot->left;
     } else {
 
         heap->foot = ndl_slabheap_footprev(heap, heap->foot);
@@ -292,8 +293,6 @@ static inline void ndl_slabheap_delete(ndl_slabheap *heap, ndl_slabheap_node *no
             from = heap->foot->right;
         else if (heap->foot->left != NULL)
             from = heap->foot->left;
-        else
-            from = NULL;
     }
 
     if (from != NULL) {
@@ -312,8 +311,10 @@ static inline void ndl_slabheap_delete(ndl_slabheap *heap, ndl_slabheap_node *no
     node->parent = NULL;
 
     /* You can delete from anywhere, so we may have to bubble too. */
-    ndl_slabheap_sink(heap, node);
-    ndl_slabheap_bubble(heap, node);
+    if (from != NULL) {
+        ndl_slabheap_sink(heap, node);
+        ndl_slabheap_bubble(heap, node);
+    }
 }
 
 void *ndl_slabheap_node_head(ndl_slabheap *heap) {
@@ -382,7 +383,7 @@ void *ndl_slabheap_put(ndl_slabheap *heap, void *data) {
 
     ndl_slabheap_insert(heap, node);
 
-    return node;
+    return (void *) &node->data;
 }
 
 int ndl_slabheap_del(ndl_slabheap *heap, void *data) {
@@ -423,6 +424,7 @@ uint64_t ndl_slabheap_cap(ndl_slabheap *heap) {
 void ndl_slabheap_print(ndl_slabheap *heap) {
 
     printf("Printing heap.\n");
+    printf("Root, foot nodes: %p %p.\n", (void *) heap->root, (void *) heap->foot);
     printf("Data size, compare: %ld, %p.\n", heap->data_size, (void *) &heap->compare);
     ndl_slab_print((ndl_slab *) &heap->slab);
 }
