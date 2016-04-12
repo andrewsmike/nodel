@@ -11,7 +11,7 @@ static inline ndl_slab_item *ndl_slab_get_item(ndl_slab *slab, ndl_slab_index in
 
     uint64_t bindex = index / bs;
     uint64_t iindex = index % bs;
-    uint64_t ioffset = iindex * (sizeof(ndl_slab_item) + slab->elem_size) + sizeof(ndl_slab_item);
+    uint64_t ioffset = iindex * (sizeof(ndl_slab_item) + slab->elem_size);
 
     return (ndl_slab_item*) (((uint8_t *) slab->blocks[bindex]) + ioffset);
 }
