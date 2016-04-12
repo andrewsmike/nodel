@@ -107,6 +107,18 @@ static inline ndl_hashtable *ndl_eval_get_opcode_table(void) {
     return ndl_eval_opcode_table;
 }
 
+void ndl_eval_opcodes_cleanup(void) {
+
+    if (ndl_eval_opcode_table == NULL)
+        return;
+
+    ndl_hashtable_kill(ndl_eval_opcode_table);
+
+    ndl_eval_opcode_table = NULL;
+
+    return;
+}
+
 ndl_eval_result ndl_eval(ndl_graph *graph, ndl_ref local) {
 
     ndl_eval_result err;
@@ -158,4 +170,3 @@ ndl_sym *ndl_eval_opcodes_next(ndl_sym *last) {
 
     return (ndl_sym *) ndl_hashtable_keynext(ops, (void *) last);
 }
-

@@ -78,7 +78,7 @@ typedef struct ndl_eval_result_s {
 ndl_eval_result ndl_eval(ndl_graph *graph, ndl_ref local);
 
 
-/* Lookup opcode-implementing functions.
+/* Opcode lookup table.
  * Opcodes are each implemented as a separate function, with a similar prototype to ndl_eval.
  * Opcodes can be queried by key and their keys enumerated.
  * Runs on a large static size symbol->ndl_eval_func hashtable backend, avoid too much iteration.
@@ -86,8 +86,11 @@ ndl_eval_result ndl_eval(ndl_graph *graph, ndl_ref local);
  *
  * opcode_lookup() gets the evaluation function for the given opcode symbol.
  *
- * opcode_head() gets the pointer to the first opcode key in the hashtable.
- * opcode_next() gets the pointer to the next opcode key in the hashtable.
+ * opcodes_head() gets the pointer to the first opcode key in the hashtable.
+ * opcodes_next() gets the pointer to the next opcode key in the hashtable.
+ *
+ * opcodes_cleanup() deletes the current lookup table. The table will be regenerated as needed.
+ *     (Mostly used for pretty valgrind results at program exits.)
  */
 typedef ndl_eval_result (*ndl_eval_func)(ndl_graph *graph, ndl_ref local, ndl_ref pc);
 
@@ -95,5 +98,7 @@ ndl_eval_func ndl_eval_opcode_lookup(ndl_sym opcode);
 
 ndl_sym *ndl_eval_opcodes_head(void);
 ndl_sym *ndl_eval_opcodes_next(ndl_sym *last);
+
+void ndl_eval_opcodes_cleanup(void);
 
 #endif /* NODEL_EVAL_H */

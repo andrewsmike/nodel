@@ -778,7 +778,7 @@ static inline int ndl_runtime_run_event(ndl_runtime *runtime, ndl_clock_event *h
     return count;
 }
 
-static inline int ndl_runtime_crun(ndl_runtime *runtime, int64_t timeout, struct timespec start) {
+static inline int ndl_runtime_run_cready(ndl_runtime *runtime, int64_t timeout, struct timespec start) {
 
     struct timespec end = ndl_runtime_run_usec_to_ts(timeout);
     end = ndl_runtime_run_ts_add(end, start);
@@ -818,7 +818,7 @@ int ndl_runtime_run_ready(ndl_runtime *runtime, int64_t timeout) {
     if (err != 0)
         return err;
 
-    return ndl_runtime_crun(runtime, timeout, start);
+    return ndl_runtime_run_cready(runtime, timeout, start);
 }
 
 static inline int64_t ndl_runtime_run_ctimeto(ndl_runtime *runtime, struct timespec now) {
@@ -906,7 +906,7 @@ int ndl_runtime_run_for(ndl_runtime *runtime, int64_t timeout) {
 
     while (diff.tv_sec >= 0) {
 
-        err = ndl_runtime_run_ready(runtime, ndl_runtime_run_ts_to_usec(diff));
+        err = ndl_runtime_run_cready(runtime, ndl_runtime_run_ts_to_usec(diff), curr);
         if (err != 0)
             return err;
 
