@@ -455,7 +455,8 @@ static inline int ndl_runtime_wait_del(ndl_runtime *runtime, int64_t pid) {
     if (proc == NULL)
         return -1;
 
-    ndl_process *prev, *next;
+    ndl_process *prev = NULL;
+    ndl_process *next = NULL;
 
     if (proc->event_prev_pid != -1) {
 
@@ -754,7 +755,7 @@ static inline int ndl_runtime_run_event(ndl_runtime *runtime, ndl_clock_event *h
     int64_t freq = (int64_t) curr->freq;
 
     int64_t next_pid;
-    int count;
+    int count = 0;
     do {
         curr = ndl_rhashtable_get(runtime->procs, &pid);
         if (curr == NULL)

@@ -27,7 +27,7 @@ LIBS=m
 
 # Compiler flags.
 CCFLAGS=-std=gnu11 -I$(INC) -Wall -Wextra -Wno-unused-parameter -Wformat -Wpedantic -Wconversion -Wmissing-prototypes -Werror
-DEBUG=#-pg -g -Ofast
+DEBUG= -Ofast#-pg -g
 LIBFLAGS=$(addprefix -l, $(LIBS))
 
 # Default rule for compiling object files.
