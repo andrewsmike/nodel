@@ -83,7 +83,7 @@ static int ndl_eval_prep_opcode_table(ndl_hashtable *table) {
 
 #ifndef NDL_EVAL_OPCODE_TABLE_SIZE
 
-#    define NDL_EVAL_OPCODE_TABLE_SIZE 256
+#    define NDL_EVAL_OPCODE_TABLE_SIZE 64
 
 #endif
 
