@@ -20,34 +20,32 @@
  * Symbols may not be more than eight chars long.
  * You may 'attach' extra key/value pairs to an instruction by
  * adding a '|' to the end of the line, followed by a series
- * of comma separated key=type(value) pairs.
+ * of comma separated key=value pairs.
  *
  * EXAMPLE
  *
- * load self.instpntr.sum -> self.sum | sum=FLOAT(0)
+ * load instpntr.sum -> sum | sum=0.0
  * loop:
- * fadd sum, FLOAT(3.1415) -> sum
- * sub counter, INT(-1) -> counter
- * branch counter, INT(0) -> break, break, loop
- * break:
+ * fadd sum, 3.1415 -> sum
+ * sub counter, 1 -> counter
+ * branch counter, 0 | gt=:loop
  * print sum
  *
  * INSTRUCTION SET CFG
  *
  * ASM: LINE+
- * LINE : (EMPTY | LABEL | OPCODE) \n
+ * LINE : WS* (LABEL | OPCODE)? EMPTY \n
  * EMPTY : WS* COMMENT?
  * WS : " " | "\t"
  * COMMENT : "#" [^\n]*
- * LABEL : SYM ":" EMPTY
- * OPCODE : MAINOP WS+ EXTRAOP? EMPTY
- * MAINOP : SYM (WS+ OBJ (WS+ SEPARATOR WS+ OBJ)*)?
+ * LABEL : SYM ":"
+ * OPCODE : MAINOP WS+ EXTRAOP?
+ * MAINOP : SYM (WS+ OBJ (WS* SEPARATOR WS* OBJ)*)?
  * SYM : [a-zA-Z_][a-zA-Z_0-9]*
- * OBJ : SYM | (TYPE "(" (FPCONST | INTCONST | REFCONST) ")")
- * TYPE : "FLOAT" | "INT" | "REF"
- * FPCONST : "-"? [0-9]+ "." [0-9]+
- * INTCONST : "-"? [0-9]+
- * REFCONST : SYM
+ * OBJ : SYM | FLOAT | INT | REF
+ * FLOAT : "-"? [0-9]+ "." [0-9]+
+ * INT : "-"? [0-9]+
+ * REF : SYM ":"
  * SEPARATOR : "," | "." | "->"
  * EXTRAOP: "|" WS+ SYM WS* "=" WS* OBJ ("," WS* SYM WS* "=" WS* OBJ)*
  */
@@ -55,7 +53,10 @@
 typedef struct ndl_asm_script_s ndl_asm_script;
 
 ndl_asm_script *ndl_asm_parse(const char *source);
-
 ndl_ref ndl_asm_gen(ndl_graph *graph, ndl_asm_script *script);
+
+void ndl_asm_kill(ndl_asm_script *script);
+
+void ndl_asm_print(ndl_asm_script *script);
 
 #endif /* NODEL_ASM_H */

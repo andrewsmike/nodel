@@ -12,6 +12,7 @@
 #include "hashtable.h"
 #include "rehashtable.h"
 #include "eval.h"
+#include "asm.h"
 
 static int testprettyprint(void) {
 
@@ -843,6 +844,35 @@ static int testrehashtable(void) {
     return 0;
 }
 
+static int testassembler(void) {
+
+    printf("Beginning assembly tests.\n");
+
+    char *src1 =
+        "loop:   \t          \r\n"
+        "\tloop2:   #Labels.   \n"
+        "add a, b\t-> c #WOOOO \n"
+        "sub l.q->n            \n"
+        "add a, 10 -> b        \n"
+        "add a, 10.3 -> b      \n"
+        "bleh:                 \n"
+        "add b, -10 -> b       \n"
+        "add b, -10.3 -> b     \n"
+        "load :bleh, syma -> b \n";
+
+    ndl_asm_script *s1 = ndl_asm_parse(src1);
+    if (s1 == NULL) {
+        fprintf(stderr, "Failed to assemble string.\n");
+        exit(EXIT_FAILURE);
+    }
+        
+
+    ndl_asm_print(s1);
+
+    ndl_asm_kill(s1);
+
+    return 0;
+}
 
 int main(int argc, const char *argv[]) {
 
@@ -892,6 +922,9 @@ int main(int argc, const char *argv[]) {
             err = testruntimefibo(atoi(argv[2]), NULL);
         else
             err = testruntimefibo(1000000, NULL);
+        break;
+    case 10:
+        err = testassembler();
         break;
     default:
         fprintf(stderr, "Unknown test: %d. Valid indices: 0-8.\n", test);

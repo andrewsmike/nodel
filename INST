@@ -7,12 +7,13 @@ copy:   opcode, syma, symb,       next  # self.symb = self.syma
 load:   opcode, syma, symb, symc, next  # self.symc = self.syma.symb
 save:   opcode, syma, symb, symc, next  # self.symc.symb = self.syma
 drop:   opcode, syma, symb,       next  # clear(self.syma.symb)
-type:   opcode, syma, symb, symc, next  # self.symc = typeof(self.syma.symb) ('none, 'ref, 'sym, 'int, 'float)
+type:   opcode, syma, symb, symc, next  # self.symc = typeof(self.syma.symb) (none, ref, sym, int, float)
 
 count:  opcode, syma, symb,       next  # self.symb = len(self.syma)
 iload:  opcode, syma, symb, symc, next  # self.symc = self.syma[self.symb]
 
 Floating point:
+# All argument symbols can be replaced with constants.
 fadd:   opcode, syma, symb, symc, next  # self.symc = (float) self.syma + self.symb
 fsub:   opcode, syma, symb, symc, next  # self.symc = (float) self.syma - self.symb
 fneg:   opcode, syma, symb,       next  # self.symb = (float) -self.syma
@@ -23,6 +24,7 @@ fsqrt:  opcode: syma, symb,       next  # self.symb = sqrt(self.syma)
 ftoi:   opcode, syma, symb,       next  # self.symb = (int) self.syma
 
 Integer:
+# All argument symbols can be replaced with constants.
 and:     opcode, syma, symb, symc, next  # self.symc = self.syma & self.symb
 or:      opcode, syma, symb, symc, next  # self.symc = self.syma | self.symb
 xor:     opcode, syma, symb, symc, next  # self.symc = self.syma ^ self.symb
@@ -46,7 +48,7 @@ Symbol:
 stoi:   opcode, syma, symb,       next  # self.symb = (int) self.syma
 
 Control:
-branch: opcode, syma, symb, gt, eq, lt  # Take the appropriate branch 
+branch: opcode, syma, symb, gt, eq, lt  # Take the appropriate branch. If case is missing, tries self.next.
 push:   opcode, syma              next  # push the frame, take on new PC, self.
 
 Process:
@@ -57,7 +59,7 @@ wait:   opcode, syma, next # Sleep until someone modifies a given node.
 
 # Node: Different devices will have different semantics, and may require extra arguments.
 IO:
-excall: opcode, syma, symb, symc, next # self.symc = RPC(dest=self.syma, data=self.symb)
+excall: opcode, syma, symb, symc, next # self.symc = RPC(dest=self.syma, data=self.symb, extra=self)
 
 Debug:
 print:  opcode, syma, next # Print the value in self.syma to console.
