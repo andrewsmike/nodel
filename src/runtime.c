@@ -192,6 +192,8 @@ ndl_runtime *ndl_runtime_minit(void *region, ndl_graph *graph) {
     }
     ret->cevents = cevents;
 
+    ndl_eval_opcodes_ref();
+
     return ret;
 }
 
@@ -208,6 +210,8 @@ void ndl_runtime_mkill(ndl_runtime *runtime) {
     if (runtime->freqs != NULL) ndl_rhashtable_kill(runtime->freqs);
     if (runtime->waits != NULL) ndl_rhashtable_kill(runtime->waits);
     if (runtime->cevents != NULL) ndl_slabheap_kill(runtime->cevents);
+
+    ndl_eval_opcodes_deref();
 }
 
 uint64_t ndl_runtime_msize(ndl_graph *graph) {

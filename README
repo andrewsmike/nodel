@@ -10,29 +10,49 @@ make directives:
 - all: Build test application.
 - clean: Clean all files.
 
+Usage
+-----
+Nodel currently produces two executables.
+./test is for testing various modules of code, and has many special purpose arguments.
+./nodel is for loading a serialized graph from a file and executing the included program, with args.
+Type ./nodel for help.
+
 Status
 ------
 Nodel currently has a working node graph with backreferences and garbage collection.
-This is unreasonably inefficient and inflexible, but a replacement is in the works.
-Improved efficiency code can be found in the perf branch for now, until it is merged
-and integrated. (Nodepool shall be obliterated with the fury of a thousand daemons.)
-There is a basic opcode implementation, process step function, and runtime scheme.
-The runtime system is largely complete, with the exception of sleep/wait functionality,
-IO, serialization, and more debugging tools.
-(All of these stand to gain significant improvements from the perf branch, once in a working state.)
-It is able to run programs, which must be manually encoded into a graph.
+It includes a frequency and event based runtime system, along with an interpreter and
+assembler. Nodel was not made to be inefficient, but with the exception of nodepool
+(replacement in progress), nodel runs with reasonable efficiency. (Nodepool shall be
+obliterated with the fury of a thousand daemons.) The runtime is partially complete,
+and requires more testing/debugging/refactoring/feature adding before being ready for
+use. Nodel is now able to run programs generated from a basic assembly language.
 
 Future work
 -----------
-The perf branch will bring performance improvements (making most things O(1) or,
-at least, O(log(n))), along with added functionality in the form of efficient
-containers for mapping and storage.
-Waiting on this are improvements to runtime and nodepool. (under works)
-Better processes debugging tools are being considered.
-Tools for rooted subgraph copy are in the works.
-Runtime through excall is in the works. Mostly waiting on runtime upgrades from perf branch.
-An assembly language has been worked out, and an assembler in the works.
-A BASIC inspired higher level expression language is being considered.
+- Obliviate nodepool (replace with multiple slab hashtable pools for nodes)
+- Modify opcodes to accept constants, have branch default to next
+- Continue work on the runtime systems
+- - Break into multiple files and refactor
+- - Add occasional GC call somewhere
+- - Add excall hook and registry system
+- - Debug and test like hell
+- - Heavy performance analysis (how slow are waittables?)
+- Clean up and refactor assembler source some more
+- Graph_dcopy functionality
+- Storage excalls using ^graph_dcopy
+- Assembly differ for visualizations
+- Toy assembler command, toy interpreter command
+- Possible optimizations to hashing function? (fastpath/shift for cap==2<<n?)
+- Refactor codebase with consistent style (naming, whitespace, struct members, etc)
+- Process management excalls?
+- Features for embedding into games (limits on process count, frequency, nodecount, etc)
+- Further performance analysis
+- Runtime serialization (possibly just encode into graph, save graph and root)
+- Add in-place usage of datastructures where applicable
+- BASIC-inspired datastructure oriented high level language compiler (and utilities)
+- graph <---> assembly tools
+- NCURSES test visualization interface.
+- Actual GUI (What to use, oh god... xlib? gtk? pygame? cat > /dev/printer?)
 
 Goals
 -----
