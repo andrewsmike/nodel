@@ -38,7 +38,7 @@ extern const char *ndl_value_type_to_string[EVAL_SIZE];
 
 
 /* C datatypes for each value datatype. */
-typedef  int32_t ndl_ref;
+typedef  int64_t ndl_ref;
 typedef uint64_t ndl_sym;
 typedef  int64_t ndl_int;
 typedef double   ndl_float;

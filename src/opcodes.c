@@ -427,7 +427,7 @@ BEGINOP(print) {
 
     ndl_value_to_string(val, 15, buff);
 
-    printf("[%03d@%03d]: %s.\n", pc, local, buff);
+    printf("[%03ld@%03ld]: %s.\n", pc, local, buff);
 
     ADVANCE;
 }

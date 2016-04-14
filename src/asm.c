@@ -689,7 +689,7 @@ void ndl_asm_print_err(ndl_asm_result res) {
     if (res.msg == NULL) {
 
         printf("Successfully assembled program.\n");
-        printf("Root node, graph pointer: %d@%p\n", res.root, (void *) res.graph);
+        printf("Root node, graph pointer: %ld@%p\n", res.root, (void *) res.graph);
     } else {
 
         printf("Failed to assemble program.\n");

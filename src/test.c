@@ -250,7 +250,7 @@ static int testruntimeadd(void) {
         exit(EXIT_FAILURE);
     }
 
-    printf("[%3ld] Process started. Instruction@frame: %3d@%03d.\n", pid, i0, local);
+    printf("[%3ld] Process started. Instruction@frame: %3ld@%03ld.\n", pid, i0, local);
 
     err = ndl_runtime_run_for(runtime, -1);
     if (err != 0) {
@@ -271,7 +271,7 @@ static int testruntimeadd(void) {
 
     pid = ndl_runtime_proc_init(runtime, local2);
     ndl_runtime_proc_resume(runtime, pid);
-    printf("[%3ld] Process started. Instruction@frame: %3d@%03d.\n", pid, i0, local);
+    printf("[%3ld] Process started. Instruction@frame: %3ld@%03ld.\n", pid, i0, local);
 
     ndl_runtime_run_for(runtime, -1);
     ndl_runtime_print(runtime);
@@ -422,7 +422,7 @@ static int testruntimefibo(int steps, const char *path) {
     int64_t pid = ndl_runtime_proc_init(runtime, local);
     ndl_runtime_proc_resume(runtime, pid);
 
-    printf("[%3ld] Process started. Instruction@frame: %3d@%03d.\n", pid, insts[0], local);
+    printf("[%3ld] Process started. Instruction@frame: %3ld@%03ld.\n", pid, insts[0], local);
 
     ndl_runtime_print(runtime);
 
@@ -653,7 +653,7 @@ static int testruntimefork(int threads) {
     int64_t pid = ndl_runtime_proc_init(runtime, rootlocal);
     ndl_runtime_proc_resume(runtime, pid);
 
-    printf("[%3ld] Process started. Instruction@frame: %3d@%03d.\n", pid, insts[0], rootlocal);
+    printf("[%3ld] Process started. Instruction@frame: %3ld@%03ld.\n", pid, insts[0], rootlocal);
 
     ndl_runtime_print(runtime);
 

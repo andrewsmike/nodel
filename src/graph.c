@@ -433,7 +433,7 @@ static inline int64_t ndl_graph_to_mem_kvpair(ndl_graph *graph, ndl_sym key, ndl
     return (int64_t) curr;
 }
 
-static inline int64_t ndl_graph_to_mem_node(ndl_graph *graph, int node, uint64_t maxlen, char *to) {
+static inline int64_t ndl_graph_to_mem_node(ndl_graph *graph, long int node, uint64_t maxlen, char *to) {
 
     uint64_t curr = 0;
 
@@ -478,7 +478,7 @@ int64_t ndl_graph_to_mem(ndl_graph *graph, uint64_t maxlen, void *mem) {
 
     MEMPUSH(uint32_t, node_count);
 
-    int addr = ndl_node_pool_head(graph->pool);
+    long int addr = ndl_node_pool_head(graph->pool);
 
     while (addr >= 0) {
 
