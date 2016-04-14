@@ -16,8 +16,8 @@ static inline ndl_slab_item *ndl_slab_get_item(ndl_slab *slab, ndl_slab_index in
     return (ndl_slab_item*) (((uint8_t *) slab->blocks[bindex]) + ioffset);
 }
 
-/* When block_size not specified, aim for blocks of 4K bytes. */
-#define NDL_SLAB_BLOCK_SIZE 4096
+/* When block_size not specified, aim for blocks of 1K bytes. */
+#define NDL_SLAB_BLOCK_SIZE 1024
 
 ndl_slab *ndl_slab_init(uint64_t elem_size, uint64_t block_size) {
 
