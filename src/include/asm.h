@@ -49,9 +49,26 @@
  * INT : "-"? [0-9]+
  * REF : SYM ":"
  * SEPARATOR : "," | "." | "->"
- * EXTRAOP: "|" WS+ SYM WS* "=" WS* OBJ ("," WS* SYM WS* "=" WS* OBJ)*
+ * EXTRAOP: "|" (WS+ SYM WS* "=" WS* OBJ)*
  */
 
-ndl_graph *ndl_asm_parse(const char *source);
+/* Results of a parse.
+ * msg is NULL if there were no errors.
+ * If graph is NULL, allocates new graph.
+ */
+typedef struct ndl_asm_parse_res_s {
+
+    const char *src;
+
+    ndl_ref root, head;
+    ndl_graph *graph;
+
+    const char *msg;
+    long int line, column;
+
+} ndl_asm_parse_res;
+
+ndl_asm_parse_res ndl_asm_parse(const char *source, ndl_graph *using);
+void ndl_asm_print_err(ndl_asm_parse_res result);
 
 #endif /* NODEL_ASM_H */

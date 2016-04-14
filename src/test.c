@@ -862,15 +862,15 @@ static int testassembler(void) {
         "add b, -10.3 -> b     \n"
         "load :bleh, syma -> b \n";
 
-    ndl_graph *s1 = ndl_asm_parse(src1);
-    if (s1 == NULL) {
-        fprintf(stderr, "Failed to assemble program.\n");
+    ndl_asm_parse_res res = ndl_asm_parse(src1, NULL);
+    if (res.msg != NULL) {
+        ndl_asm_print_err(res);
         exit(EXIT_FAILURE);
     }
 
-    ndl_graph_print(s1);
+    ndl_graph_print(res.graph);
 
-    ndl_graph_kill(s1);
+    ndl_graph_kill(res.graph);
 
     return 0;
 }
@@ -917,11 +917,13 @@ static int testassemblerfibo(int count) {
         "exit:                                                    \n"
         "exit                                                     \n";
 
-    ndl_graph *rungraph = ndl_asm_parse(fibo);
-    if (rungraph == NULL) {
-        fprintf(stderr, "Failed to assemble program.\n");
+    ndl_asm_parse_res res = ndl_asm_parse(fibo, NULL);
+    if (res.msg != NULL) {
+        ndl_asm_print_err(res);
         exit(EXIT_FAILURE);
     }
+    
+    ndl_graph *rungraph = res.graph;
 
     ndl_graph_print(rungraph);
 
@@ -938,7 +940,7 @@ static int testassemblerfibo(int count) {
     }
 
     int err = 0;
-    err |= ndl_graph_set(rungraph, local, NDL_SYM("instpntr"), NDL_VALUE(EVAL_REF, ref=local));
+    err |= ndl_graph_set(rungraph, local, NDL_SYM("instpntr"), NDL_VALUE(EVAL_REF, ref=res.head));
     err |= ndl_graph_set(rungraph, local, NDL_SYM("arg1    "), NDL_VALUE(EVAL_INT, ref=count));
     if (err != 0) {
         fprintf(stderr, "Failed to initialize local block.\n");
