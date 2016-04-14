@@ -727,18 +727,18 @@ static void ndl_runtime_tick(ndl_runtime *runtime, int64_t pid) {
 
         err = ndl_runtime_run_checkmod(runtime, res.mod[i]);
         if (err != 0)
-            printf("[%3ld] Failed to revive processes. God rest ye souls.\n", pid);
+            printf("[%3ld@%03d] Failed to revive processes. God rest ye souls.\n", pid, local);
     }
 
     if (exit == 2)
-        printf("[%3ld] Process used excalls. Process destroyed itself in its hubris.\n", pid);
+        printf("[%3ld@%03d] Process used excalls. Process destroyed itself in its hubris.\n", pid, local);
     if (exit == 3)
-        printf("[%3ld] Invalid local or bad instruction. We couldn't save 'em.\n", pid);
+        printf("[%3ld@%03d] Invalid local or bad instruction. We couldn't save 'em.\n", pid, local);
 
     if (exit != 0) {
         err = ndl_runtime_proc_kill(runtime, pid);
         if (err != 0)
-            printf("[%3ld] Failed to kill process. Here be zombies.\n", pid);
+            printf("[%3ld@%03d] Failed to kill process. Here be zombies.\n", pid, local);
     }
 }
 
