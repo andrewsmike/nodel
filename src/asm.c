@@ -9,25 +9,22 @@
 #include "graph.h"
 
 /* Basic assembler.
- * Parse a string into the intermediate assembly format and build
- * the desired function into an ndl_graph.
- * As it turns out, it's pretty easy to generate the graph directly
- * from a stateful process as you parse the string. The intermediate
- * format is primarily made of a graph that is eventually copied on
- * generation.
+ * Parse a source string and generate the equivalent function graph.
+ * Uses ndl_asm_script during generation.
  */
 
-struct ndl_asm_script_s {
+typedef struct ndl_asm_script_s {
 
-    const char *source;
-
-    ndl_ref root, label_node, curr_inst;
+    ndl_ref root, label_node, curr_inst, badref_head;
 
     ndl_graph *graph;
-};
+
+    const char *err;
+    long int line, column;
+} ndl_asm_script;
 
 /* Initialize the graph datastructure for generation.
- * Has a root node, a label mapping node, and the first instruction.
+ * Has a root node, a label mapping node, the first instruction.
  * Root has pointers to the label, the current, and the head(same as current.)
  */
 static int ndl_asm_parse_init(ndl_asm_script *script) {
@@ -51,8 +48,24 @@ static int ndl_asm_parse_init(ndl_asm_script *script) {
     script->root = root;
     script->label_node = labels;
     script->curr_inst = head;
+    script->badref_head = NDL_NULL_REF;
+
+    script->err = NULL;
+    script->line = 0;
+    script->column = 0;
 
     return 0;
+}
+
+/* Attempt to handle failure gracefully.
+ * Unmarks the root, calls clean.
+ */
+static void ndl_asm_parse_kill(ndl_asm_script *script) {
+
+    int err = ndl_graph_unmark(script->graph, script->root);
+
+    if (err == 0)
+        ndl_graph_clean(script->graph);
 }
 
 /* Useful macros. Will probably replace IS_TOKEN() with individual test macros. */
@@ -83,6 +96,7 @@ NDL_DEF_TOKEN_CHECK(obj, (IS_TOKEN(symbol, (&c)) ||
 NDL_DEF_TOKEN_CHECK(ws, c == ' ' || c == '\t')
 NDL_DEF_TOKEN_CHECK(comment, c == '#')
 NDL_DEF_TOKEN_CHECK(bar, c == '|')
+NDL_DEF_TOKEN_CHECK(eq, c == '=')
 NDL_DEF_TOKEN_CHECK(eol, c == '\n' || c == '\r')
 NDL_DEF_TOKEN_CHECK(eos, c == '\0')
 NDL_DEF_TOKEN_CHECK(sep, c == '-' || c == ',' || c == '.')
@@ -98,7 +112,7 @@ static inline long int ndl_asm_parse_eat_ws(const char *src) {
     return curr - src;
 }
 
-static inline long int ndl_asm_parse_eat_comment(const char *src) {
+static inline long int ndl_asm_parse_eat_comment(const char *src, ndl_asm_script *env) {
 
     const char *curr = src;
     while (!IS_TOKEN(eol, curr) && !IS_TOKEN(eos, curr))
@@ -110,10 +124,12 @@ static inline long int ndl_asm_parse_eat_comment(const char *src) {
         return curr - src + 1;
 }
 
-static inline long int ndl_asm_parse_eat_sym(const char *src, ndl_sym *ret) {
+static inline long int ndl_asm_parse_eat_sym(const char *src, ndl_sym *ret, ndl_asm_script *env) {
 
     const char *curr = src;
     while (IS_TOKEN(isymbol, curr)) curr++;
+
+    env->column += curr - src;
 
     long int size = curr - src;
     if (size > 8 || size == 0)
@@ -129,14 +145,16 @@ static inline long int ndl_asm_parse_eat_sym(const char *src, ndl_sym *ret) {
     return size;
 }
 
-static inline long int ndl_asm_parse_eat_label(const char *src, ndl_sym *ret) {
+static inline long int ndl_asm_parse_eat_label(const char *src, ndl_sym *ret, ndl_asm_script *env) {
 
     if (!IS_TOKEN(label, src))
         return -1;
 
-    long int off = ndl_asm_parse_eat_sym(src + 1, ret);
+    long int off = ndl_asm_parse_eat_sym(src + 1, ret, env);
     if (off < 0)
         return -1;
+
+    env->column++;
 
     return off + 1;
 }
@@ -144,7 +162,7 @@ static inline long int ndl_asm_parse_eat_label(const char *src, ndl_sym *ret) {
 static inline long int ndl_asm_parse_marker(const char *src, ndl_asm_script *env) {
 
     ndl_sym sym;
-    long int off = ndl_asm_parse_eat_sym(src, &sym);
+    long int off = ndl_asm_parse_eat_sym(src, &sym, env);
     if (off < 0)
         return -1;
 
@@ -157,8 +175,10 @@ static inline long int ndl_asm_parse_marker(const char *src, ndl_asm_script *env
     while (IS_TOKEN(ws, curr))
         curr++;
 
+    env->column += curr - src;
+
     if (IS_TOKEN(comment, curr))
-        return (curr - src) + ndl_asm_parse_eat_comment(curr);
+        return (curr - src) + ndl_asm_parse_eat_comment(curr, env);
     else if (IS_TOKEN(eol, curr))
         return (curr - src) + 1;
     else if (IS_TOKEN(eos, curr))
@@ -173,6 +193,7 @@ static long int ndl_asm_parse_num(const char *src, ndl_asm_script *env, ndl_sym 
     if (src[0] == '-') {
         inv = 1;
         src++;
+        env->column++;
     }
 
     int64_t ival = 0;
@@ -181,6 +202,7 @@ static long int ndl_asm_parse_num(const char *src, ndl_asm_script *env, ndl_sym 
         ival *= 10;
         ival += (search[0] - '0');
         search++;
+        env->column++;
     }
 
     ndl_value val;
@@ -195,11 +217,13 @@ static long int ndl_asm_parse_num(const char *src, ndl_asm_script *env, ndl_sym 
         if (!IS_TOKEN(numins, (search+1)))
             return -1;
 
+        env->column++;
         search++;
         while (IS_TOKEN(numins, search)) {
             val.real += scale * (search[0] - '0');
             scale *= 0.1;
             search++;
+            env->column++;
         }
     }
 
@@ -220,21 +244,36 @@ static long int ndl_asm_parse_num(const char *src, ndl_asm_script *env, ndl_sym 
         return search - src;
 }
 
-/* TODO: Resolve references at end of parsing. */
 static long int ndl_asm_parse_label(const char *src, ndl_asm_script *env, ndl_sym argname) {
 
     ndl_sym ret;
-    long int off = ndl_asm_parse_eat_label(src, &ret);
+    long int off = ndl_asm_parse_eat_label(src, &ret, env);
     if (off < 0)
         return -1;
 
+    /* If already in symbol table, resolve. Else, push to badref list. */
     ndl_value to = ndl_graph_get(env->graph, env->label_node, ret);
-    if (to.type != EVAL_REF || to.ref == NDL_NULL_REF)
-        return -1;
+    if (to.type == EVAL_REF || to.ref != NDL_NULL_REF) {
 
-    int err = ndl_graph_set(env->graph, env->curr_inst, argname, to);
-    if (err != 0)
-        return -1;
+        int err = ndl_graph_set(env->graph, env->curr_inst, argname, to);
+        if (err != 0)
+            return -1;
+    } else {
+
+        ndl_ref badref = ndl_graph_salloc(env->graph, env->root, NDL_SYM("brefhead"));
+        if (badref == NDL_NULL_REF)
+            return -1;
+
+        int err = 0;
+        err |= ndl_graph_set(env->graph, badref, NDL_SYM("label   "), NDL_VALUE(EVAL_SYM, sym=ret));
+        err |= ndl_graph_set(env->graph, badref, NDL_SYM("inst    "), NDL_VALUE(EVAL_REF, ref=env->curr_inst));
+        err |= ndl_graph_set(env->graph, badref, NDL_SYM("symbol  "), NDL_VALUE(EVAL_SYM, sym=argname));
+        err |= ndl_graph_set(env->graph, badref, NDL_SYM("brefnext"), NDL_VALUE(EVAL_REF, ref=env->badref_head));
+        if (err != 0)
+            return -1;
+
+        env->badref_head = badref;
+    }
 
     return off;
 }
@@ -242,7 +281,7 @@ static long int ndl_asm_parse_label(const char *src, ndl_asm_script *env, ndl_sy
 static long int ndl_asm_parse_sym(const char *src, ndl_asm_script *env, ndl_sym argname) {
 
     ndl_sym ret;
-    long int off = ndl_asm_parse_eat_sym(src, &ret);
+    long int off = ndl_asm_parse_eat_sym(src, &ret, env);
     if (off < 0)
         return -1;
 
@@ -277,6 +316,8 @@ static long int ndl_asm_parse_arglist(const char *src, ndl_asm_script *env) {
     while (IS_TOKEN(ws, curr))
         curr++;
 
+    env->column += curr - src;
+
     if (IS_TOKEN(eol, curr))
         return (curr - src) + 1;
     else if (IS_TOKEN(eos, curr))
@@ -296,9 +337,13 @@ static long int ndl_asm_parse_arglist(const char *src, ndl_asm_script *env) {
     long int it;
     for (it = 1; it < 26; it++) {
 
+        const char *t = curr;
+
         /* sargchew */
         while (IS_TOKEN(ws, curr))
             curr++;
+
+        env->column += curr - t;
 
         /* sarg */
         if (!IS_TOKEN(sep, curr))
@@ -308,13 +353,19 @@ static long int ndl_asm_parse_arglist(const char *src, ndl_asm_script *env) {
             if (curr[1] != '>')
                 return -1;
             curr += 2;
+            env->column += 2;
         } else {
             curr += 1;
+            env->column += 1;
         }
+
+        t = curr;
 
         /* argchew */
         while (IS_TOKEN(ws, curr))
             curr++;
+
+        env->column += curr - t;
 
         /* arg */
         if (!IS_TOKEN(obj, curr))
@@ -331,11 +382,83 @@ static long int ndl_asm_parse_arglist(const char *src, ndl_asm_script *env) {
     return -1;
 }
 
-static long int ndl_parse_kvlist(const char *src, ndl_asm_script *env) {
+/* WS* SYMBOL WS* '=' WS* OBJECT */
 
-    /* TODO: kv lists. */
-    return 0;
+static long int ndl_asm_parse_kvlist_pair(const char *src, ndl_asm_script *env) {
 
+    const char *curr = src;
+
+    /* Chew whitespace. */
+    while (IS_TOKEN(ws, curr))
+        curr++;
+
+    env->column += curr - src;
+
+    /* Read symbol. */
+    if (!IS_TOKEN(symbol, curr))
+        return (curr - src);
+
+    ndl_sym name;
+    long int off = ndl_asm_parse_eat_sym(src, &name, env);
+    if (off < 0)
+        return -1;
+
+    curr += off;
+
+    const char *t = curr;
+
+    /* Chew whitespace. */
+    while (IS_TOKEN(ws, curr))
+        curr++;
+
+    env->column += curr - t;
+
+    /* Chew '='. */
+    if (!IS_TOKEN(eq, curr))
+        return -1;
+
+    curr++;
+    env->column++;
+
+    t = curr;
+
+    /* Chew whitespace. */
+    while (IS_TOKEN(ws, curr))
+        curr++;
+
+    env->column += curr - t;
+
+    /* Chew object. */
+    off = ndl_asm_parse_obj(curr, env, name);
+    if (off < 0)
+        return -1;
+
+    curr += off;
+
+    return curr - src;
+}
+
+
+static long int ndl_asm_parse_kvlist(const char *src, ndl_asm_script *env) {
+
+    if (!IS_TOKEN(bar, src))
+        return 0;
+
+    const char *curr = src + 1;
+
+    env->column++;
+
+    long int off = 1;
+    while (off > 0) {
+
+        off = ndl_asm_parse_kvlist_pair(curr, env);
+        if (off < 0)
+            return -1;
+
+        curr += off;
+    }
+
+    return curr - src;
 }
 
 /* Parse a line starting with a symbol.
@@ -353,14 +476,16 @@ static long int ndl_asm_parse_nline(const char *src, ndl_asm_script *env) {
 
     ndl_sym opcode;
     const char *curr = src;
-    long int off = ndl_asm_parse_eat_sym(curr, &opcode);
+    long int off = ndl_asm_parse_eat_sym(curr, &opcode, env);
     if (off < 0)
         return -1;
 
     curr += off;
 
-    if (IS_TOKEN(label, curr))
+    if (IS_TOKEN(label, curr)) {
+        env->column -= off;
         return ndl_asm_parse_marker(src, env);
+    }
 
     /* Parsing a regular opcode. */
     int err = ndl_graph_set(env->graph, env->curr_inst, NDL_SYM("opcode  "), NDL_VALUE(EVAL_SYM, sym=opcode));
@@ -379,7 +504,7 @@ static long int ndl_asm_parse_nline(const char *src, ndl_asm_script *env) {
         return -1;
 
     /* Parse the KV list after salloc, overwrite self.next. */
-    off = ndl_parse_kvlist(curr, env);
+    off = ndl_asm_parse_kvlist(curr, env);
     if (off < 0)
         return -1;
 
@@ -389,7 +514,7 @@ static long int ndl_asm_parse_nline(const char *src, ndl_asm_script *env) {
     env->curr_inst = next;
 
     if (IS_TOKEN(comment, curr)) {
-        return (curr - src) + ndl_asm_parse_eat_comment(curr);
+        return (curr - src) + ndl_asm_parse_eat_comment(curr, env);
     } else if (IS_TOKEN(eol, curr)) {
         return (curr - src) + 1;
     } else if (IS_TOKEN(eos, curr)) {
@@ -414,11 +539,13 @@ static long int ndl_asm_parse_line(const char *src, ndl_asm_script *env) {
 
         off = ndl_asm_parse_eat_ws(src);
 
+        env->column += off;
+
         return ndl_asm_parse_line(src + off, env) + off;
 
     } else if (IS_TOKEN(comment, src)) {
 
-        return ndl_asm_parse_eat_comment(src);
+        return ndl_asm_parse_eat_comment(src, env);
 
     } else if (IS_TOKEN(eol, src)) {
 
@@ -438,56 +565,76 @@ static long int ndl_asm_parse_line(const char *src, ndl_asm_script *env) {
     }
 }
 
-ndl_asm_script *ndl_asm_parse(const char *source) {
+ndl_graph *ndl_asm_parse(const char *source) {
 
-    ndl_asm_script *env = malloc(sizeof(ndl_asm_script));
-    if (env == NULL)
+    ndl_asm_script env;
+
+    env.graph = ndl_graph_init();
+    if (env.graph == NULL)
         return NULL;
 
-    env->graph = ndl_graph_init();
-    if (env->graph == NULL) {
-        free(env);
-        return NULL;
-    }
-
-    /* Initialize the  graph datastructure. */
-    if (ndl_asm_parse_init(env) != 0) {
-        free(env);
-        ndl_graph_kill(env->graph);
+    /* Initialize the graph datastructure. */
+    if (ndl_asm_parse_init(&env) != 0) {
+        ndl_asm_parse_kill(&env);
+        ndl_graph_kill(env.graph);
         return NULL;
     }
 
-    env->source = source;
-
+    /* Parse each line. */
     while (*source != '\0') {
-        long int res = ndl_asm_parse_line(source, env);
+        long int res = ndl_asm_parse_line(source, &env);
         if (res <= 0) {
-            free(env);
-            ndl_graph_kill(env->graph);
+            ndl_asm_parse_kill(&env);
+            ndl_graph_kill(env.graph);
             return NULL;
         }
+        env.line++;
+        env.column = 0;
         source += res;
     }
 
-    return env;
-}
+    /* Resolve any forward/bad references, then free badref list. */
+    if (env.badref_head != NDL_NULL_REF) {
 
-void ndl_asm_kill(ndl_asm_script *script) {
+        while (env.badref_head != NDL_NULL_REF) {
 
-    if (script == NULL)
-        return;
+            ndl_value inst = ndl_graph_get(env.graph, env.badref_head, NDL_SYM("inst    "));
+            ndl_value label = ndl_graph_get(env.graph, env.badref_head, NDL_SYM("label   "));
+            ndl_value symbol = ndl_graph_get(env.graph, env.badref_head, NDL_SYM("symbol  "));
+            if (((inst.type != EVAL_REF) || (symbol.type != EVAL_SYM) || (label.type != EVAL_SYM) ||
+                 (inst.ref == NDL_NULL_REF) || (symbol.sym == NDL_NULL_SYM) || (label.sym == NDL_NULL_SYM))) {
+                ndl_asm_parse_kill(&env);
+                ndl_graph_kill(env.graph);
+                return NULL;
+            }
 
-    if (script->graph != NULL)
-        ndl_graph_kill(script->graph);
+            ndl_value dest = ndl_graph_get(env.graph, env.label_node, label.sym);
+            if (dest.type != EVAL_REF) {
+                ndl_asm_parse_kill(&env);
+                ndl_graph_kill(env.graph);
+                return NULL;
+            }
 
-    free(script);
-}
+            int err = ndl_graph_set(env.graph, inst.ref, symbol.sym, NDL_VALUE(EVAL_REF, ref=dest.ref));
+            ndl_value next = ndl_graph_get(env.graph, env.badref_head, NDL_SYM("brefnext"));
+            if ((next.type != EVAL_REF) || (err != 0)) {
+                ndl_asm_parse_kill(&env);
+                ndl_graph_kill(env.graph);
+                return NULL;
+            }
 
-void ndl_asm_print(ndl_asm_script *script) {
+            env.badref_head = next.ref;
+        }
 
-    printf("Printing assembly.\n");
-    printf("Source:\n--------\n%s\n--------\n", script->source);
-    printf("Root, label nodes: %d, %d.\n", script->root, script->label_node);
+        int err = ndl_graph_del(env.graph, env.root, NDL_SYM("brefhead"));
+        if (err != 0) {
+            ndl_asm_parse_kill(&env);
+            ndl_graph_kill(env.graph);
+            return NULL;
+        }
 
-    ndl_graph_print(script->graph);
+        ndl_graph_clean(env.graph);
+    }
+
+    return env.graph;
 }

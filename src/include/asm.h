@@ -4,32 +4,34 @@
 #include "graph.h"
 
 /* Interpret an ./INST like assembly language and
- * generate the described nodel function datastructure.
+ * generate the described function's graph datastructure.
  * 
- * Allows you to parse a program string and generate an
- * intermediate datastructure. You can then 'write' this
- * datastructure into any graph, and get the resulting root node.
- *
- *
  * INSTRUCTION SET
+ *
  * Labels are references to the next instruction.
  * Empty lines are ignored.
  * Comments are parsed out.
+ * Whitespace is ignored.
  * Instructions are a list of symbols.
  * Instructions may use ".", "->", or "," to separate args.
  * Symbols may not be more than eight chars long.
  * You may 'attach' extra key/value pairs to an instruction by
  * adding a '|' to the end of the line, followed by a series
- * of comma separated key=value pairs.
+ * of comma separated key=value pairs. These may overwrite
+ * default opcode, syma, symb, next options.
  *
  * EXAMPLE
  *
  * load instpntr.sum -> sum | sum=0.0
  * loop:
  * fadd sum, 3.1415 -> sum
- * sub counter, 1 -> counter
+ * sub counter, 1 -> counter # comment
  * branch counter, 0 | gt=:loop
  * print sum
+ *
+ * Note: you may or may not have space between args, '=', '|', ',', '->',
+ * but you *MUST* have a space after integers and before '.'s.
+ * 3.self will be an error, and 3.14 will be interpreted as a float.
  *
  * INSTRUCTION SET CFG
  *
@@ -50,13 +52,6 @@
  * EXTRAOP: "|" WS+ SYM WS* "=" WS* OBJ ("," WS* SYM WS* "=" WS* OBJ)*
  */
 
-typedef struct ndl_asm_script_s ndl_asm_script;
-
-ndl_asm_script *ndl_asm_parse(const char *source);
-ndl_ref ndl_asm_gen(ndl_graph *graph, ndl_asm_script *script);
-
-void ndl_asm_kill(ndl_asm_script *script);
-
-void ndl_asm_print(ndl_asm_script *script);
+ndl_graph *ndl_asm_parse(const char *source);
 
 #endif /* NODEL_ASM_H */

@@ -854,22 +854,119 @@ static int testassembler(void) {
         "add a, b\t-> c #WOOOO \n"
         "sub l.q->n            \n"
         "add a, 10 -> b        \n"
+        "ollo :bleh            \n"
+        "ollo :bleh            \n"
         "add a, 10.3 -> b      \n"
         "bleh:                 \n"
         "add b, -10 -> b       \n"
         "add b, -10.3 -> b     \n"
         "load :bleh, syma -> b \n";
 
-    ndl_asm_script *s1 = ndl_asm_parse(src1);
+    ndl_graph *s1 = ndl_asm_parse(src1);
     if (s1 == NULL) {
-        fprintf(stderr, "Failed to assemble string.\n");
+        fprintf(stderr, "Failed to assemble program.\n");
         exit(EXIT_FAILURE);
     }
-        
 
-    ndl_asm_print(s1);
+    ndl_graph_print(s1);
 
-    ndl_asm_kill(s1);
+    ndl_graph_kill(s1);
+
+    return 0;
+}
+
+/* Run the canonical test fibonacci program,
+ * using the assembler.
+ *
+ * Local block starts with
+ * self.arg1 = number of iterations.
+ *
+ * branch count zero | lt=:exit eq=:exit gt=:printb symb=0
+ *
+ * printb:
+ * print b
+ * add a, b -> a
+ * sum count, one -> count | symb=1
+ * branch count zero | lt=:exit eq=:exit gt=:printa symb=0
+ *
+ * printa:
+ * print a
+ * add a, b -> b
+ * sum count, one -> count | symb=1
+ * branch count zero | lt=:exit eq=:exit gt=:printb symb=0
+ *
+ * exit:
+ * exit
+ */
+static int testassemblerfibo(int count) {
+
+    printf("Beginning fibo assembly test.\n");
+
+    char *fibo =
+        "branch count, zero | lt=:exit eq=:exit gt=:printb symb=0 \n"
+        "printb:                                                  \n"
+        "print b                                                  \n"
+        "add a, b -> a                                            \n"
+        "sum count, one -> count | symb=1                         \n"
+        "branch count, zero | lt=:exit eq=:exit gt=:printa symb=0 \n"
+        "printa:                                                  \n"
+        "print a                                                  \n"
+        "add a, b -> b                                            \n"
+        "sum count, one -> count | symb=1                         \n"
+        "branch count, zero | lt=:exit eq=:exit gt=:printb symb=0 \n"
+        "exit:                                                    \n"
+        "exit                                                     \n";
+
+    ndl_graph *rungraph = ndl_asm_parse(fibo);
+    if (rungraph == NULL) {
+        fprintf(stderr, "Failed to assemble program.\n");
+        exit(EXIT_FAILURE);
+    }
+
+    ndl_graph_print(rungraph);
+
+    ndl_runtime *runtime = ndl_runtime_init(rungraph);
+    if (runtime == NULL) {
+        fprintf(stderr, "Failed to create runtime.\n");
+        exit(EXIT_FAILURE);
+    }
+
+    ndl_ref local = ndl_graph_alloc(rungraph);
+    if (local == NDL_NULL_REF) {
+        fprintf(stderr, "Failed to create local node.\n");
+        exit(EXIT_FAILURE);
+    }
+
+    int err = 0;
+    err |= ndl_graph_set(rungraph, local, NDL_SYM("instpntr"), NDL_VALUE(EVAL_REF, ref=local));
+    err |= ndl_graph_set(rungraph, local, NDL_SYM("arg1    "), NDL_VALUE(EVAL_INT, ref=count));
+    if (err != 0) {
+        fprintf(stderr, "Failed to initialize local block.\n");
+        exit(EXIT_FAILURE);
+    }
+
+    int64_t pid = ndl_runtime_proc_init(runtime, local);
+    if (pid < 0) {
+        fprintf(stderr, "Failed to create process.\n");
+        exit(EXIT_FAILURE);
+    }
+
+    err = ndl_runtime_proc_resume(runtime, pid);
+    if (err != 0) {
+        fprintf(stderr, "Failed to resume process.\n");
+        exit(EXIT_FAILURE);
+    }
+
+    ndl_runtime_print(runtime);
+
+    ndl_runtime_run_for(runtime, count * 10);
+
+    ndl_runtime_print(runtime);
+
+    ndl_graph_print(rungraph);
+
+    ndl_runtime_kill(runtime);
+    ndl_graph_kill(rungraph);
 
     return 0;
 }
@@ -925,6 +1022,9 @@ int main(int argc, const char *argv[]) {
         break;
     case 10:
         err = testassembler();
+        break;
+    case 11:
+        err = testassemblerfibo(10);
         break;
     default:
         fprintf(stderr, "Unknown test: %d. Valid indices: 0-8.\n", test);
