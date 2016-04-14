@@ -845,7 +845,7 @@ static int testassembler(void) {
         "loop:   \t          \r\n"
         "\tloop2:   #Labels.   \n"
         "add a, b\t-> c #WOOOO \n"
-        "sub l.q->n            \n"
+        "sub l,q->n            \n"
         "add a, 10 -> b        \n"
         "ollo :bleh            \n"
         "ollo :bleh            \n"
@@ -855,7 +855,7 @@ static int testassembler(void) {
         "add b, -10.3 -> b     \n"
         "load :bleh, syma -> b \n";
 
-    ndl_asm_parse_res res = ndl_asm_parse(src1, NULL);
+    ndl_asm_result res = ndl_asm_parse(src1, NULL);
     if (res.msg != NULL) {
         ndl_asm_print_err(res);
         exit(EXIT_FAILURE);
@@ -896,21 +896,26 @@ static int testassemblerfibo(int count) {
     printf("Beginning fibo assembly test.\n");
 
     char *fibo =
-        "branch count, 0 | lt=:exit eq=:exit gt=:printb \n"
-        "printb:                                        \n"
-        "print b                                        \n"
-        "add a, b -> a                                  \n"
-        "sum count, one -> count | symb=1               \n"
-        "branch count, 0 | lt=:exit eq=:exit gt=:printa \n"
-        "printa:                                        \n"
-        "print a                                        \n"
-        "add a, b -> b                                  \n"
-        "sum count, one -> count | symb=1               \n"
-        "branch count, 0 | lt=:exit eq=:exit gt=:printb \n"
-        "exit:                                          \n"
-        "exit                                           \n";
+        "load instpntr.zero -> zero | zero=0               \n"
+        "load instpntr.one  -> one  | one=1                \n"
+        "load self.arg1     -> count                       \n"
+        "load self.zero -> a                               \n"
+        "load self.one  -> b                               \n"
+        "branch count, zero | lt=:exit eq=:exit gt=:printb \n"
+        "printb:                                           \n"
+        "print b                                           \n"
+        "add a, b -> a                                     \n"
+        "sub count, one -> count                           \n"
+        "branch count, zero | lt=:exit eq=:exit gt=:printa \n"
+        "printa:                                           \n"
+        "print a                                           \n"
+        "add a, b -> b                                     \n"
+        "sub count, one -> count                           \n"
+        "branch count, zero | lt=:exit eq=:exit gt=:printb \n"
+        "exit:                                             \n"
+        "exit                                              \n";
 
-    ndl_asm_parse_res res = ndl_asm_parse(fibo, NULL);
+    ndl_asm_result res = ndl_asm_parse(fibo, NULL);
     if (res.msg != NULL) {
         ndl_asm_print_err(res);
         exit(EXIT_FAILURE);
@@ -933,7 +938,7 @@ static int testassemblerfibo(int count) {
     }
 
     int err = 0;
-    err |= ndl_graph_set(rungraph, local, NDL_SYM("instpntr"), NDL_VALUE(EVAL_REF, ref=res.head));
+    err |= ndl_graph_set(rungraph, local, NDL_SYM("instpntr"), NDL_VALUE(EVAL_REF, ref=res.inst_head));
     err |= ndl_graph_set(rungraph, local, NDL_SYM("arg1    "), NDL_VALUE(EVAL_INT, ref=count));
     if (err != 0) {
         fprintf(stderr, "Failed to initialize local block.\n");

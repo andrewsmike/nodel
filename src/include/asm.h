@@ -52,23 +52,29 @@
  * EXTRAOP: "|" (WS+ SYM WS* "=" WS* OBJ)*
  */
 
-/* Results of a parse.
- * msg is NULL if there were no errors.
- * If graph is NULL, allocates new graph.
+/* Results of an attempted assembly.
+ * Stores the source text, the graph,
+ * references to some of the instantiated nodes,
+ * and the error message with line/column data.
+ *
+ * On error, msg is not NULL.
  */
-typedef struct ndl_asm_parse_res_s {
+typedef struct ndl_asm_result_s {
 
     const char *src;
 
-    ndl_ref root, head;
     ndl_graph *graph;
+
+    ndl_ref root;
+    ndl_ref inst_head, inst_tail;
+    ndl_ref label_table, badref_head;
 
     const char *msg;
     long int line, column;
 
-} ndl_asm_parse_res;
+} ndl_asm_result;
 
-ndl_asm_parse_res ndl_asm_parse(const char *source, ndl_graph *using);
-void ndl_asm_print_err(ndl_asm_parse_res result);
+ndl_asm_result ndl_asm_parse(const char *source, ndl_graph *using);
+void ndl_asm_print_err(ndl_asm_result result);
 
 #endif /* NODEL_ASM_H */

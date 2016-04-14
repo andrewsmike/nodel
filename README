@@ -47,6 +47,7 @@ Future work
 - Process management excalls?
 - Features for embedding into games (limits on process count, frequency, nodecount, etc)
 - Further performance analysis
+- Better tools for debugging specific processes (process error message, error state)
 - Runtime serialization (possibly just encode into graph, save graph and root)
 - Add in-place usage of datastructures where applicable
 - BASIC-inspired datastructure oriented high level language compiler (and utilities)
