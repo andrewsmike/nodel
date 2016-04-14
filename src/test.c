@@ -277,7 +277,6 @@ static int testruntimeadd(void) {
     ndl_runtime_print(runtime);
     ndl_graph_print(graph);
 
-    ndl_eval_opcodes_cleanup();
     ndl_runtime_kill(runtime);
 
     return 0;
@@ -442,7 +441,6 @@ static int testruntimefibo(int steps, const char *path) {
         if (est < 0) {
             fprintf(stderr, "Failed to estimate serialized graph size.\n");
             ndl_runtime_kill(runtime);
-            ndl_eval_opcodes_cleanup();
             return -1;
         }
 
@@ -450,7 +448,6 @@ static int testruntimefibo(int steps, const char *path) {
         if (buff == NULL) {
             fprintf(stderr, "Failed to allocate serialization buffer.\n");
             ndl_runtime_kill(runtime);
-            ndl_eval_opcodes_cleanup();
             return -1;
         }
 
@@ -460,7 +457,6 @@ static int testruntimefibo(int steps, const char *path) {
 
         if (size <= 0) {
             fprintf(stderr, "Failed to serialize graph.\n");
-            ndl_eval_opcodes_cleanup();
             ndl_runtime_kill(runtime);
             return -1;
         }
@@ -469,7 +465,6 @@ static int testruntimefibo(int steps, const char *path) {
 
         if (out == NULL) {
             fprintf(stderr, "Failed to open file.\n");
-            ndl_eval_opcodes_cleanup();
             ndl_runtime_kill(runtime);
             return -1;
         }
@@ -484,7 +479,6 @@ static int testruntimefibo(int steps, const char *path) {
     }
 
     ndl_runtime_kill(runtime);
-    ndl_eval_opcodes_cleanup();
 
     return 0;
 }
@@ -669,7 +663,6 @@ static int testruntimefork(int threads) {
 
     ndl_graph_print(graph);
 
-    ndl_eval_opcodes_cleanup();
     ndl_runtime_kill(runtime);
 
     return 0;
@@ -903,19 +896,19 @@ static int testassemblerfibo(int count) {
     printf("Beginning fibo assembly test.\n");
 
     char *fibo =
-        "branch count, zero | lt=:exit eq=:exit gt=:printb symb=0 \n"
-        "printb:                                                  \n"
-        "print b                                                  \n"
-        "add a, b -> a                                            \n"
-        "sum count, one -> count | symb=1                         \n"
-        "branch count, zero | lt=:exit eq=:exit gt=:printa symb=0 \n"
-        "printa:                                                  \n"
-        "print a                                                  \n"
-        "add a, b -> b                                            \n"
-        "sum count, one -> count | symb=1                         \n"
-        "branch count, zero | lt=:exit eq=:exit gt=:printb symb=0 \n"
-        "exit:                                                    \n"
-        "exit                                                     \n";
+        "branch count, 0 | lt=:exit eq=:exit gt=:printb \n"
+        "printb:                                        \n"
+        "print b                                        \n"
+        "add a, b -> a                                  \n"
+        "sum count, one -> count | symb=1               \n"
+        "branch count, 0 | lt=:exit eq=:exit gt=:printa \n"
+        "printa:                                        \n"
+        "print a                                        \n"
+        "add a, b -> b                                  \n"
+        "sum count, one -> count | symb=1               \n"
+        "branch count, 0 | lt=:exit eq=:exit gt=:printb \n"
+        "exit:                                          \n"
+        "exit                                           \n";
 
     ndl_asm_parse_res res = ndl_asm_parse(fibo, NULL);
     if (res.msg != NULL) {

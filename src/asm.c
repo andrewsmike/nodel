@@ -71,11 +71,11 @@ static void ndl_asm_parse_kill(ndl_asm_script *script) {
 /* Useful macros. */
 #define IS_TOKEN_SYMBOL(c) (((c >= 'a') && (c <= 'z')) ||       \
                             ((c >= 'A') && (c <= 'Z')) ||       \
-                            ((c == '_') || (c == '-')))
+                            ((c == '_')))
 #define IS_TOKEN_ISYMBOL(c) (((c >= 'a') && (c <= 'z')) ||      \
                              ((c >= 'A') && (c <= 'Z')) ||      \
                              ((c >= '0') && (c <= '9')) ||      \
-                             ((c == '_') || (c == '-')))
+                             ((c == '_')))
 #define IS_TOKEN_NUM(c) (((c >= '0') && (c <= '9')) || (c == '-'))
 #define IS_TOKEN_INUM(c) (((c >= '0') && (c <= '9')))
 

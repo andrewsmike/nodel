@@ -81,7 +81,7 @@ ndl_eval_result ndl_eval(ndl_graph *graph, ndl_ref local);
 /* Opcode lookup table.
  * Opcodes are each implemented as a separate function, with a similar prototype to ndl_eval.
  * Opcodes can be queried by key and their keys enumerated.
- * Runs on a large static size symbol->ndl_eval_func hashtable backend, avoid too much iteration.
+ * Runs on a symbol->ndl_eval_func resizable hashtable backend, avoids too much iteration.
  * Iteration methods return NULL on end-of-list.
  *
  * opcode_lookup() gets the evaluation function for the given opcode symbol.
@@ -89,8 +89,8 @@ ndl_eval_result ndl_eval(ndl_graph *graph, ndl_ref local);
  * opcodes_head() gets the pointer to the first opcode key in the hashtable.
  * opcodes_next() gets the pointer to the next opcode key in the hashtable.
  *
- * opcodes_cleanup() deletes the current lookup table. The table will be regenerated as needed.
- *     (Mostly used for pretty valgrind results at program exits.)
+ * opcodes_ref() adds a reference to the opcode system. May generate table.
+ * opcodes_deref() removes a reference to the opcode table. If refcount == 0, frees.
  */
 typedef ndl_eval_result (*ndl_eval_func)(ndl_graph *graph, ndl_ref local, ndl_ref pc);
 
@@ -99,6 +99,7 @@ ndl_eval_func ndl_eval_opcode_lookup(ndl_sym opcode);
 ndl_sym *ndl_eval_opcodes_head(void);
 ndl_sym *ndl_eval_opcodes_next(ndl_sym *last);
 
-void ndl_eval_opcodes_cleanup(void);
+void ndl_eval_opcodes_ref(void);
+void ndl_eval_opcodes_deref(void);
 
 #endif /* NODEL_EVAL_H */

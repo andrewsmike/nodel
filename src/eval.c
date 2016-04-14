@@ -1,20 +1,21 @@
 #include "eval.h"
 #include "opcodes.h"
-#include "hashtable.h"
+#include "rehashtable.h"
 
 #include <stdlib.h>
 
-ndl_hashtable *ndl_eval_opcode_table = NULL;
+static int ndl_eval_opcode_table_refs = -1;
+ndl_rhashtable *ndl_eval_opcode_table = NULL;
 
 #define ADDOP(table, name, symbol)                                      \
     do {                                                                \
         ndl_eval_func t = &(ndl_opcode_ ## name);                       \
-        err = ndl_hashtable_put(table, &NDL_SYM(symbol), &t);           \
+        err = ndl_rhashtable_put(table, &NDL_SYM(symbol), &t);          \
         if (err == NULL)                                                \
             return -1;                                                  \
     } while (0)
 
-static int ndl_eval_prep_opcode_table(ndl_hashtable *table) {
+static int ndl_eval_prep_opcode_table(ndl_rhashtable *table) {
 
     void *err;
     /* Nodes and slots. */
@@ -81,40 +82,56 @@ static int ndl_eval_prep_opcode_table(ndl_hashtable *table) {
     return 0;
 }
 
-#ifndef NDL_EVAL_OPCODE_TABLE_SIZE
+static inline void ndl_eval_gen_opcode_table(void) {
 
-#    define NDL_EVAL_OPCODE_TABLE_SIZE 64
+    ndl_rhashtable *ret =
+        ndl_rhashtable_init(sizeof(ndl_sym), sizeof(ndl_eval_func *), 16);
 
-#endif
+    if (ret == NULL)
+        return;
 
-static inline ndl_hashtable *ndl_eval_get_opcode_table(void) {
+    int err = ndl_eval_prep_opcode_table(ret);
+    if (err != 0)
+        ndl_rhashtable_kill(ret);
 
-    if (ndl_eval_opcode_table == NULL) {
+    ndl_eval_opcode_table = ret;
+}
 
-        ndl_hashtable *ret =
-            ndl_hashtable_init(sizeof(ndl_sym), sizeof(ndl_eval_func *), NDL_EVAL_OPCODE_TABLE_SIZE);
+static inline ndl_rhashtable *ndl_eval_get_opcode_table(void) {
 
-        if (ret == NULL)
-            return NULL;
-
-        int err = ndl_eval_prep_opcode_table(ret);
-        if (err != 0)
-            ndl_hashtable_kill(ret);
-
-        ndl_eval_opcode_table = ret;
-    }
+    /* Allow old, refcount ignoring usage. */
+    if (ndl_eval_opcode_table == NULL)
+        ndl_eval_gen_opcode_table();
 
     return ndl_eval_opcode_table;
 }
 
-void ndl_eval_opcodes_cleanup(void) {
+void ndl_eval_opcodes_ref(void) {
 
     if (ndl_eval_opcode_table == NULL)
-        return;
+        ndl_eval_gen_opcode_table();
 
-    ndl_hashtable_kill(ndl_eval_opcode_table);
+    if (ndl_eval_opcode_table_refs == -1) {
+        ndl_eval_opcode_table_refs = 1;
+    } else {
+        ndl_eval_opcode_table_refs++;
+    }
 
-    ndl_eval_opcode_table = NULL;
+    return;
+}
+
+void ndl_eval_opcodes_deref(void) {
+
+    ndl_eval_opcode_table_refs--;
+    if (ndl_eval_opcode_table_refs <= 0) {
+
+        ndl_eval_opcode_table_refs = -1;
+
+        if (ndl_eval_opcode_table != NULL) {
+            ndl_rhashtable_kill(ndl_eval_opcode_table);
+            ndl_eval_opcode_table = NULL;
+        }
+    }
 
     return;
 }
@@ -142,11 +159,11 @@ ndl_eval_result ndl_eval(ndl_graph *graph, ndl_ref local) {
 
 ndl_eval_func ndl_eval_opcode_lookup(ndl_sym opcode) {
 
-    ndl_hashtable *ops = ndl_eval_get_opcode_table();
+    ndl_rhashtable *ops = ndl_eval_get_opcode_table();
     if (ops == NULL)
         return NULL;
 
-    ndl_eval_func *t = ndl_hashtable_get(ops, &opcode);
+    ndl_eval_func *t = ndl_rhashtable_get(ops, &opcode);
     if (t == NULL)
         return NULL;
 
@@ -155,18 +172,18 @@ ndl_eval_func ndl_eval_opcode_lookup(ndl_sym opcode) {
 
 ndl_sym *ndl_eval_opcodes_head(void) {
 
-    ndl_hashtable *ops = ndl_eval_get_opcode_table();
+    ndl_rhashtable *ops = ndl_eval_get_opcode_table();
     if (ops == NULL)
         return NULL;
 
-    return (ndl_sym *) ndl_hashtable_keyhead(ops);
+    return (ndl_sym *) ndl_rhashtable_keyhead(ops);
 }
 
 ndl_sym *ndl_eval_opcodes_next(ndl_sym *last) {
 
-    ndl_hashtable *ops = ndl_eval_get_opcode_table();
+    ndl_rhashtable *ops = ndl_eval_get_opcode_table();
     if (ops == NULL)
         return NULL;
 
-    return (ndl_sym *) ndl_hashtable_keynext(ops, (void *) last);
+    return (ndl_sym *) ndl_rhashtable_keynext(ops, (void *) last);
 }
