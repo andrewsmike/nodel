@@ -46,6 +46,10 @@ typedef struct ndl_node_pool_s {
 ndl_node_pool *ndl_node_pool_init(void);
 void           ndl_node_pool_kill(ndl_node_pool *pool);
 
+ndl_node_pool *ndl_node_pool_minit(void *region);
+void           ndl_node_pool_mkill(ndl_node_pool *pool);
+uint64_t       ndl_node_pool_msize(void);
+
 ndl_ref ndl_node_pool_alloc(ndl_node_pool *pool);
 ndl_ref ndl_node_pool_alloc_pref(ndl_node_pool *pool, ndl_ref pref); /* NDL_NULL_REF if pref is taken. */
 void    ndl_node_pool_free(ndl_node_pool *pool, ndl_ref node);

@@ -146,11 +146,30 @@ static void nld_kv_node_print(ndl_kv_node *node) {
 
 ndl_node_pool *ndl_node_pool_init(void) {
 
-    ndl_node_pool *pool = (ndl_node_pool*) malloc(sizeof(ndl_node_pool));
+    void *region = malloc(sizeof(ndl_node_pool));
 
-    if (pool == NULL)
+    if (region == NULL)
         return NULL;
 
+    ndl_node_pool *pool = ndl_node_pool_minit(region);
+    if (pool == NULL)
+        free(region);
+
+    return pool;
+}
+
+void ndl_node_pool_kill(ndl_node_pool *pool) {
+
+    ndl_node_pool_mkill(pool);
+
+    free(pool);
+
+    return;
+}
+
+ndl_node_pool *ndl_node_pool_minit(void *region) {
+
+    ndl_node_pool *pool = (ndl_node_pool *) region;
     for (int i = 0; i < NDL_MAX_NODES; i++)
         pool->slots[i] = NULL;
 
@@ -159,13 +178,18 @@ ndl_node_pool *ndl_node_pool_init(void) {
     return pool;
 }
 
-void ndl_node_pool_kill(ndl_node_pool *pool) {
+void ndl_node_pool_mkill(ndl_node_pool *pool) {
 
     for (int i = 0; i < NDL_MAX_NODES; i++)
         if (pool->slots[i] != NULL)
             ndl_kv_node_free(pool->slots[i]);
 
-    free(pool);
+    return;
+}
+
+uint64_t ndl_node_pool_msize(void) {
+
+    return sizeof(ndl_node_pool);
 }
 
 ndl_ref ndl_node_pool_alloc(ndl_node_pool *pool) {
