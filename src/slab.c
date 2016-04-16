@@ -84,6 +84,10 @@ void ndl_slab_mkill(ndl_slab *slab) {
     return;
 }
 
+/* Currently, slab size does not depend on elem_size or
+ * block_size. Should the unthinkable happen, and that change,
+ * rehashtablepool depends on this. Fix that.
+ */
 uint64_t ndl_slab_msize(uint64_t elem_size, uint64_t block_size) {
 
     return sizeof(ndl_slab);
