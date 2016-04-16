@@ -37,7 +37,7 @@ void *ndl_kv_node_next(void *last);
 ndl_sym  ndl_kv_node_key(void *curr);
 ndl_value ndl_kv_node_val(void *curr);
 
-#define NDL_MAX_NODES 4096
+#define NDL_MAX_NODES 256
 typedef struct ndl_node_pool_s {
     int use;
     ndl_kv_node *slots[NDL_MAX_NODES];
