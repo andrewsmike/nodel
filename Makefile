@@ -27,7 +27,7 @@ LIBS=m
 
 # Compiler flags.
 CCFLAGS=-std=gnu11 -I$(INC) -Wall -Wextra -Wno-unused-parameter -Wformat -Wpedantic -Wconversion -Wmissing-prototypes -Werror
-DEBUG= #-pg -g -Ofast
+DEBUG= -g #-pg -Ofast
 LIBFLAGS=$(addprefix -l, $(LIBS))
 
 # Default rule for compiling object files.
@@ -39,6 +39,10 @@ nodel: $(OBJ_PATHS) $(SRC)/nodel.o
 	$(CC) $(DEBUG) $(LIBFLAGS) $^ -o $@
 
 # Rule for compiling main executable.
+nodelasm: $(OBJ_PATHS) $(SRC)/nodelasm.o
+	$(CC) $(DEBUG) $(LIBFLAGS) $^ -o $@
+
+# Rule for compiling main executable.
 test: $(OBJ_PATHS) $(SRC)/test.o
 	$(CC) $(DEBUG) $(LIBFLAGS) $^ -o $@
 
@@ -46,7 +50,7 @@ run: nodel
 	./nodel
 
 # Main rule.
-all: nodel test
+all: nodel test nodelasm
 
 # Clean repo.
 clean:
