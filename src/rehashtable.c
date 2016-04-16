@@ -79,15 +79,15 @@ void *ndl_rhashtable_get(ndl_rhashtable *table, void *key) {
     return ndl_hashtable_get(table->table, key);
 }
 
-/* If ((size/cap) > 3/4), realloc.
- * Computed as as (size*4 > cap*3).
+/* If ((size/cap) >= 3/4), realloc.
+ * Computed as as (size*4 >= cap*3).
  */
 static inline void ndl_rhashtable_grow(ndl_rhashtable *table) {
 
     uint64_t size = ndl_hashtable_size(table->table);
     uint64_t cap = ndl_hashtable_cap(table->table);
 
-    if ((size * 4) <= (cap * 3))
+    if ((size * 4) < (cap * 3))
         return;
 
     uint64_t key_size = ndl_hashtable_key_size(table->table);
