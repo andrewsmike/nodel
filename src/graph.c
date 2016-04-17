@@ -1,6 +1,6 @@
 #include "graph.h"
 #include "nodepool.h"
-#include "endian.h"
+#include "ndlendian.h"
 
 #include <stdlib.h>
 

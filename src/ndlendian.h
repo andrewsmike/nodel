@@ -1,5 +1,5 @@
-#ifndef NODEL_ENDIAN_H
-#define NODEL_ENDIAN_H
+#ifndef NODEL_NDLENDIAN_H
+#define NODEL_NDLENDIAN_H
 
 /* Numbers must be unsigned.
  * If you feel like your compiler won't optimize this,
@@ -43,4 +43,4 @@
 
 #endif
 
-#endif /* NODEL_ENDIAN_H */
+#endif /* NODEL_NDLENDIAN_H */
