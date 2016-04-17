@@ -1,7 +1,10 @@
 *.o
 ~*
-nodel
-test
-nodelasm
-nodelc
+ndlrun
+ndlasm
+ndlc
+
+ndltest
+main
+
 gmon.*
