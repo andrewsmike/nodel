@@ -25,6 +25,8 @@ int ndl_test_register(const char *path, ndl_test_func func) {
     ndl_tests[ndl_tests_size].path = path;
     ndl_tests[ndl_tests_size].func = func;
 
+    ndl_tests_size++;
+
     return 0;
 }
 
@@ -34,10 +36,10 @@ static inline int ndl_test_run(int index) {
     char *msg = ndl_tests[index].func();
 
     if (msg == NULL) {
-        printf("[%20s] Success.\n", ndl_tests[index].path);
+        printf("[%-20s] Success.\n", ndl_tests[index].path);
         return 0;
     } else {
-        printf("[%20s] Failure. Message: '%s'.\n", ndl_tests[index].path, msg);
+        printf("[%-20s] Failure. Message: '%s'.\n", ndl_tests[index].path, msg);
         return -1;
     }
 }
@@ -62,12 +64,21 @@ int ndl_test_irun(const char *prefix) {
         return 0;
 }
 
+/* TODO: Set up an automatic test symbol accounting system. */
+static inline void ndl_test_init(void) {
+
+    ndl_test_register("ndl.slab.init", &ndl_test_slab_init);
+    ndl_test_register("ndl.slab.kill", &ndl_test_slab_kill);
+}
+
 int main(int argc, char *argv[]) {
 
     if (argc < 2) {
         fprintf(stderr, "Usage: %s ndl.test.path.prefix\n", argv[0]);
         exit(EXIT_FAILURE);
     }
+
+    ndl_test_init();
 
     printf("Running tests with prefix '%s.*'.\n", argv[1]);
 

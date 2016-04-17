@@ -18,4 +18,9 @@ typedef char *(*ndl_test_func)(void);
 int ndl_test_register(const char *path, ndl_test_func func);
 int ndl_test_irun(const char *prefix);
 
+/* TODO: Set up an automatic test symbol accounting system. */
+char *ndl_test_slab_init(void);
+char *ndl_test_slab_kill(void);
+
+
 #endif /* NODEL_TEST_H */
