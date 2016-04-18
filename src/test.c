@@ -31,7 +31,7 @@ int ndl_test_register(const char *path, ndl_test_func func) {
 }
 
 static inline int ndl_test_run(int index) {
-    printf("[%20s] Running test.\n", ndl_tests[index].path);
+    printf("[%-20s] Running test.\n", ndl_tests[index].path);
 
     char *msg = ndl_tests[index].func();
 
@@ -67,8 +67,10 @@ int ndl_test_irun(const char *prefix) {
 /* TODO: Set up an automatic test symbol accounting system. */
 static inline void ndl_test_init(void) {
 
+    ndl_test_register("ndl.slab.msize", &ndl_test_slab_msize);
     ndl_test_register("ndl.slab.init", &ndl_test_slab_init);
-    ndl_test_register("ndl.slab.kill", &ndl_test_slab_kill);
+    ndl_test_register("ndl.slab.minit", &ndl_test_slab_minit);
+    ndl_test_register("ndl.slab.meta", &ndl_test_slab_meta);
 }
 
 int main(int argc, char *argv[]) {

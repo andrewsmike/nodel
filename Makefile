@@ -52,7 +52,7 @@ main: $(OBJ_PATHS) $(SRC)/main.o
 	$(CC) $(DEBUG) $(LIBFLAGS) $^ -o $@
 
 # Rule for compiling testing executable.
-ndltest: $(TEST_OBJ_PATHS) $(SRC)/test.o
+ndltest: $(OBJ_PATHS) $(TEST_OBJ_PATHS) $(SRC)/test.o
 	$(CC) $(DEBUG) $(LIBFLAGS) $^ -o $@
 
 run: ndlrun
