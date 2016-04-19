@@ -26,7 +26,7 @@ int ndl_test_irun(const char *prefix);
 char *ndl_test_slab_msize(void);
 char *ndl_test_slab_init(void);
 char *ndl_test_slab_minit(void);
-char *ndl_test_slab_meta(void);
+char *ndl_test_slab_it(void);
 
 
 #endif /* NODEL_TEST_H */

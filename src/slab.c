@@ -182,7 +182,7 @@ void *ndl_slab_get(ndl_slab *slab, ndl_slab_index index) {
     if (index >= (slab->block_count * slab->block_size))
         return NULL;
 
-    return ndl_slab_get_item(slab, index);
+    return ((uint8_t *) ndl_slab_get_item(slab, index)) + sizeof(ndl_slab_item);
 }
 
 static inline ndl_slab_index ndl_slab_scan(ndl_slab *slab, ndl_slab_index start) {

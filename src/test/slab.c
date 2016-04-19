@@ -48,11 +48,47 @@ char *ndl_test_slab_minit(void) {
     return NULL;
 }
 
-char *ndl_test_slab_meta(void) {
+char *ndl_test_slab_it(void) {
 
-    ndl_slab *slab = ndl_slab_init(sizeof(int), 10);
-    if (slab == NULL)
-        return "Couldn't allocate or initialize";
+    ndl_slab *ret = ndl_slab_init(sizeof(uint64_t), 10);
+    if (ret == NULL)
+        return "Failed to allocate slab";
+
+    int i;
+    for (i = 0; i < 100; i++) {
+        ndl_slab_index index = ndl_slab_alloc(ret);
+        if (index == NDL_NULL_INDEX) {
+            ndl_slab_kill(ret);
+            return "Failed to allocate from slab";
+        }
+
+        uint64_t *data = (uint64_t *) ndl_slab_get(ret, index);
+        *data = index;
+    }
+
+    ndl_slab_index curr = ndl_slab_head(ret);
+    for (i = 0; curr != NDL_NULL_INDEX; i++) {
+
+        uint64_t *data = (uint64_t *) ndl_slab_get(ret, curr);
+        if (*data != curr) {
+            ndl_slab_kill(ret);
+            return "Found bad content in slab element";
+        }
+
+        ndl_slab_free(ret, curr);
+
+        curr = ndl_slab_next(ret, curr);
+    }
+
+    if (i != 100) {
+        ndl_slab_print(ret);
+        ndl_slab_kill(ret);
+        printf("%d\n", i);
+        return "Failed to delete all elements: iteration error";
+    } else if (ndl_slab_size(ret) != 0) {
+        ndl_slab_kill(ret);
+        return "Failed to delete all elements";
+    }
 
     return NULL;
 }

@@ -70,7 +70,7 @@ static inline void ndl_test_init(void) {
     ndl_test_register("ndl.slab.msize", &ndl_test_slab_msize);
     ndl_test_register("ndl.slab.init", &ndl_test_slab_init);
     ndl_test_register("ndl.slab.minit", &ndl_test_slab_minit);
-    ndl_test_register("ndl.slab.meta", &ndl_test_slab_meta);
+    ndl_test_register("ndl.slab.it", &ndl_test_slab_it);
 }
 
 int main(int argc, char *argv[]) {
