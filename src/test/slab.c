@@ -45,6 +45,8 @@ char *ndl_test_slab_minit(void) {
         return "Messes with the pointer";
     }
 
+    ndl_slab_mkill(ret);
+
     return NULL;
 }
 
@@ -89,6 +91,8 @@ char *ndl_test_slab_it(void) {
         ndl_slab_kill(ret);
         return "Failed to delete all elements";
     }
+
+    ndl_slab_kill(ret);
 
     return NULL;
 }

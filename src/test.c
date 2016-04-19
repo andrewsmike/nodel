@@ -31,15 +31,15 @@ int ndl_test_register(const char *path, ndl_test_func func) {
 }
 
 static inline int ndl_test_run(int index) {
-    printf("[%-20s] Running test.\n", ndl_tests[index].path);
+    printf("[%-28s] Running test.\n", ndl_tests[index].path);
 
     char *msg = ndl_tests[index].func();
 
     if (msg == NULL) {
-        printf("[%-20s] Success.\n", ndl_tests[index].path);
+        printf("[%-28s] Success.\n", ndl_tests[index].path);
         return 0;
     } else {
-        printf("[%-20s] Failure. Message: '%s'.\n", ndl_tests[index].path, msg);
+        printf("[%-28s] Failure. Message: '%s'.\n", ndl_tests[index].path, msg);
         return -1;
     }
 }
@@ -73,6 +73,15 @@ static inline void ndl_test_init(void) {
     ndl_test_register("ndl.slab.it", &ndl_test_slab_it);
 
     ndl_test_register("ndl.node.value.print", &ndl_test_node_value_print);
+
+    ndl_test_register("ndl.hashtable.alloc", &ndl_test_hashtable_alloc);
+    ndl_test_register("ndl.hashtable.minit", &ndl_test_hashtable_minit);
+    ndl_test_register("ndl.hashtable.it", &ndl_test_hashtable_it);
+
+    ndl_test_register("ndl.rehashtable.alloc", &ndl_test_rehashtable_alloc);
+    ndl_test_register("ndl.rehashtable.minit", &ndl_test_rehashtable_minit);
+    ndl_test_register("ndl.rehashtable.it", &ndl_test_rehashtable_it);
+    ndl_test_register("ndl.rehashtable.volume", &ndl_test_rehashtable_volume);
 }
 
 int main(int argc, char *argv[]) {

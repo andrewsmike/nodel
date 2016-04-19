@@ -9,8 +9,6 @@
 #include "graph.h"
 #include "runtime.h"
 #include "slab.h"
-#include "hashtable.h"
-#include "rehashtable.h"
 #include "eval.h"
 #include "asm.h"
 
@@ -600,125 +598,6 @@ static int testgraphsave(void) {
     return 0;
 }
 
-static int testhashtable(void) {
-
-    printf("Beginning hashtable tests.\n");
-
-    ndl_hashtable *table = ndl_hashtable_init(sizeof(int), sizeof(int), 8);
-    ndl_hashtable_print(table);
-
-    printf("Size needed by int->int 16 slot hashtable: %ld.\n",
-           ndl_hashtable_msize(sizeof(int), sizeof(int), 16));
-
-    printf("First key in hashtable: %p.\n",
-           ndl_hashtable_keyhead(table));
-
-    printf("First val in hashtable: %p.\n",
-           ndl_hashtable_valhead(table));
-
-    printf("Inserting a couple pairs.\n");
-
-    int a=3, b=6;
-
-    printf("New item: %p.\n", ndl_hashtable_put(table, &a, &b));
-
-    a ++; b ++;
-    printf("New item: %p.\n", ndl_hashtable_put(table, &a, &b));
-
-    a ++; b ++;
-    printf("New item: %p.\n", ndl_hashtable_put(table, &a, &b));
-    ndl_hashtable_print(table);
-
-    a = 4;
-    int *c = ndl_hashtable_get(table, &a);
-    printf("Got %d for 4.\n", *c);
-
-    printf("All pairs:\n");
-    c = ndl_hashtable_keyhead(table);
-    while (c != NULL) {
-
-        printf("Pair: %d:%d.\n", *c, *(c + 1));
-        c = ndl_hashtable_keynext(table, c);
-    }
-
-    ndl_hashtable_kill(table);
-
-    return 0;
-}
-
-static int testrehashtable(void) {
-
-    printf("Beginning rehashtable tests.\n");
-
-    ndl_rhashtable *table = ndl_rhashtable_init(sizeof(int), sizeof(int), 8);
-    ndl_rhashtable_print(table);
-
-    printf("Size needed by int->int 16 slot rehashtable: %ld.\n",
-           ndl_rhashtable_msize(sizeof(int), sizeof(int), 16));
-
-    printf("First key in rehashtable: %p.\n",
-           ndl_rhashtable_keyhead(table));
-
-    printf("First val in rehashtable: %p.\n",
-           ndl_rhashtable_valhead(table));
-
-    printf("Inserting a couple pairs.\n");
-
-    int a=3, b=6;
-
-    printf("New item: %p.\n", ndl_rhashtable_put(table, &a, &b));
-
-    a ++; b ++;
-    printf("New item: %p.\n", ndl_rhashtable_put(table, &a, &b));
-
-    a ++; b ++;
-    printf("New item: %p.\n", ndl_rhashtable_put(table, &a, &b));
-    ndl_rhashtable_print(table);
-
-    a = 4;
-    int *c = ndl_rhashtable_get(table, &a);
-    printf("Got %d for 4.\n", *c);
-
-    printf("All pairs:\n");
-    c = ndl_rhashtable_keyhead(table);
-    while (c != NULL) {
-
-        printf("Pair: %d:%d.\n", *c, *(c + 1));
-        c = ndl_rhashtable_keynext(table, c);
-    }
-
-    printf("Inserting 100 items with collisions.\n");
-
-    a = b = 0;
-    int i;
-    for (i = 0; i < 100; i++) {
-        a = i + (a * 31) % 17;
-        b = a + (b * 23) % 13;
-        ndl_rhashtable_put(table, &a, &b);
-    }
-    ndl_rhashtable_print(table);
-
-    printf("Removing 60 items with collisions.\n");
-    a = b = 0;
-    for (i = 0; i < 70; i++) {
-        a = i + (a * 31) % 17;
-        b = a + (b * 23) % 13;
-        ndl_rhashtable_del(table, &a);
-    }
-    ndl_rhashtable_print(table);
-
-    printf("Printing entire hashtable.\n");
-    int *key = ndl_rhashtable_keyhead(table);
-    while (key != NULL) {
-        printf("key:value | %d:%d.\n", *key, *(key+1));
-        key = ndl_rhashtable_keynext(table, key);
-    }
-
-    ndl_rhashtable_kill(table);
-
-    return 0;
-}
-
 static int testassembler(void) {
 
     printf("Beginning assembly tests.\n");
@@ -879,27 +758,21 @@ int main(int argc, const char *argv[]) {
         err = testgraphsave();
         break;
     case 4:
-        err = testhashtable();
-        break;
-    case 5:
-        err = testrehashtable();
-        break;
-    case 6:
         if (argc >= 3)
             err = testruntimefibo(10, argv[2]);
         else
             err = testruntimefibo(10, NULL);
         break;
-    case 7:
+    case 5:
         if (argc >= 3)
             err = testruntimefibo(atoi(argv[2]), NULL);
         else
             err = testruntimefibo(1000000, NULL);
         break;
-    case 8:
+    case 6:
         err = testassembler();
         break;
-    case 9:
+    case 7:
         err = testassemblerfibo(10);
         break;
     default:
