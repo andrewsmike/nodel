@@ -60,6 +60,31 @@
         ASSERTREF(name);                        \
     } while (0)
 
+#define LOADVAL(node, node2, name, esym, etype)         \
+    ndl_value name;                                     \
+    do {                                                \
+        name = ndl_graph_get(graph, node, esym);        \
+        if (name.type == EVAL_SYM) {                    \
+            LOAD(node2, name ## 2, name.sym, etype);    \
+            name = name ## 2;                           \
+        } else if (name.type != etype) {                \
+            FAIL;                                       \
+        }                                               \
+    } while (0)
+
+#define NTLOADVAL(node, node2, name, esym)      \
+    ndl_value name;                             \
+    do {                                        \
+        name = ndl_graph_get(graph, node, esym);\
+        if (name.type == EVAL_SYM) {            \
+            NTLOAD(node2, name ## 2, name.sym); \
+            ASSERTNOTNONE(name ## 2);           \
+            name = name ## 2;                   \
+        } else if (name.type == EVAL_NONE) {    \
+            FAIL;                               \
+        }                                       \
+    } while (0)
+
 #define NTLOAD(node, name, sym)                 \
     ndl_value name;                             \
     do {                                        \
@@ -207,8 +232,8 @@ BEGINOP(iload) {
 #define ONEARGFPOP(name, expr)                                      \
     BEGINOP(name) {                                                 \
         INITRES;                                                    \
-        LOADSYMAB;                                                  \
-        LOAD(local, a, syma.sym, EVAL_FLOAT);                       \
+        LOADVAL(pc, local, a, DS("syma    "), EVAL_FLOAT);          \
+        LOAD(pc, symb, DS("symb    "), EVAL_SYM);                   \
         STORE(local, NDL_VALUE(EVAL_FLOAT, real=(expr)), symb.sym); \
         ADVANCE;                                                    \
     }
@@ -216,9 +241,9 @@ BEGINOP(iload) {
 #define TWOARGFPOP(name, expr)                                      \
     BEGINOP(name) {                                                 \
         INITRES;                                                    \
-        LOADSYMABC;                                                 \
-        LOAD(local, a, syma.sym, EVAL_FLOAT);                       \
-        LOAD(local, b, symb.sym, EVAL_FLOAT);                       \
+        LOADVAL(pc, local, a, DS("syma    "), EVAL_FLOAT);          \
+        LOADVAL(pc, local, b, DS("symb    "), EVAL_FLOAT);          \
+        LOAD(pc, symc, DS("symc    "), EVAL_SYM);                   \
         STORE(local, NDL_VALUE(EVAL_FLOAT, real=(expr)), symc.sym); \
         ADVANCE;                                                    \
     }
@@ -233,9 +258,9 @@ ONEARGFPOP(fsqrt, sqrt(a.real))
 
 BEGINOP(ftoi) {
     INITRES;
-    LOADSYMAB;
+    LOADVAL(pc, local, a, DS("syma    "), EVAL_FLOAT);
+    LOAD(pc, symb, DS("symb    "), EVAL_SYM);
 
-    LOAD(local, a, syma.sym, EVAL_FLOAT);
     STORE(local, NDL_VALUE(EVAL_INT, num=(int)a.real), symb.sym);
 
     ADVANCE;
@@ -244,8 +269,8 @@ BEGINOP(ftoi) {
 #define ONEARGINTOP(name, expr)                                  \
     BEGINOP(name) {                                              \
         INITRES;                                                 \
-        LOADSYMAB;                                               \
-        LOAD(local, a, syma.sym, EVAL_INT);                      \
+        LOADVAL(pc, local, a, DS("syma    "), EVAL_INT);         \
+        LOAD(pc, symb, DS("symb    "), EVAL_SYM);                \
         STORE(local, NDL_VALUE(EVAL_INT, num=(expr)), symb.sym); \
         ADVANCE;                                                 \
     }
@@ -253,9 +278,9 @@ BEGINOP(ftoi) {
 #define TWOARGINTOP(name, expr)                                  \
     BEGINOP(name) {                                              \
         INITRES;                                                 \
-        LOADSYMABC;                                              \
-        LOAD(local, a, syma.sym, EVAL_INT);                      \
-        LOAD(local, b, symb.sym, EVAL_INT);                      \
+        LOADVAL(pc, local, a, DS("syma    "), EVAL_INT);         \
+        LOADVAL(pc, local, b, DS("symb    "), EVAL_INT);         \
+        LOAD(pc, symc, DS("symc    "), EVAL_SYM);                \
         STORE(local, NDL_VALUE(EVAL_INT, num=(expr)), symc.sym); \
         ADVANCE;                                                 \
     }
@@ -278,9 +303,9 @@ TWOARGINTOP(mod, a.num % b.num)
 
 BEGINOP(itof) {
     INITRES;
-    LOADSYMAB;
+    LOADVAL(pc, local, a, DS("syma    "), EVAL_INT);
+    LOAD(pc, symb, DS("symb    "), EVAL_SYM);
 
-    LOAD(local, a, syma.sym, EVAL_INT);
     STORE(local, NDL_VALUE(EVAL_FLOAT, real=(double)a.num), symb.sym);
 
     ADVANCE;
@@ -288,9 +313,9 @@ BEGINOP(itof) {
 
 BEGINOP(itos) {
     INITRES;
-    LOADSYMAB;
+    LOADVAL(pc, local, a, DS("syma    "), EVAL_INT);
+    LOAD(pc, symb, DS("symb    "), EVAL_SYM);
 
-    LOAD(local, a, syma.sym, EVAL_INT);
     STORE(local, NDL_VALUE(EVAL_SYM, sym=(ndl_sym) a.num), symb.sym);
 
     ADVANCE;
@@ -308,10 +333,9 @@ BEGINOP(stoi) {
 
 BEGINOP(branch) {
     INITRES;
-    LOADSYMAB;
 
-    NTLOAD(local, a, syma.sym);
-    LOAD(local, b, symb.sym, a.type);
+    NTLOADVAL(pc, local, a, DS("syma    "));
+    LOADVAL(pc, local, b, DS("symb    "), a.type);
 
     int cmp;
 
