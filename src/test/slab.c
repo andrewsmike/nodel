@@ -10,9 +10,9 @@ char *ndl_test_slab_msize(void) {
 
     uint64_t size = ndl_slab_msize(1, 1);
     if (ndl_slab_msize(10, 10) != size)
-        return "Gave variable sizes";
+        return "Gave different sizes";
     else if (ndl_slab_msize(100000000, 10000000) != size)
-        return "Gave variable sizes";
+        return "Gave different sizes";
 
     return NULL;
 }
@@ -37,15 +37,19 @@ char *ndl_test_slab_minit(void) {
         return "Out of memory, couldn't run test";
 
     ndl_slab *ret = ndl_slab_minit(region, sizeof(int), 10);
-    if (ret == NULL)
-        return "Couldn't do in-place initialization";
+    if (ret == NULL) {
+        free(region);
+        return "In-place initialization failed";
+    }
 
     if (ret != region) {
         ndl_slab_mkill(ret);
+        free(region);
         return "Messes with the pointer";
     }
 
     ndl_slab_mkill(ret);
+    free(region);
 
     return NULL;
 }

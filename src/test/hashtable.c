@@ -20,11 +20,17 @@ char *ndl_test_hashtable_minit(void) {
         return "Out of memory, couldn't run test";
 
     ndl_hashtable *ret = ndl_hashtable_minit(region, sizeof(int), sizeof(int), 10);
-    if (ret == NULL)
+    if (ret == NULL) {
+        free(region);
         return "Couldn't do in-place initialization";
+    }
 
-    if (ret != region)
+    if (ret != region) {
+        free(region);
         return "Messes with the pointer";
+    }
+
+    free(region);
 
     return NULL;
 }

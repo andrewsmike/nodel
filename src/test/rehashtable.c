@@ -23,11 +23,19 @@ char *ndl_test_rehashtable_minit(void) {
         return "Out of memory, couldn't run test";
 
     ndl_rhashtable *ret = ndl_rhashtable_minit(region, sizeof(int), sizeof(int), 10);
-    if (ret == NULL)
+    if (ret == NULL) {
+        free(region);
         return "Couldn't do in-place initialization";
+    }
 
-    if (ret != region)
+    if (ret != region) {
+        ndl_rhashtable_mkill(ret);
+        free(region);
         return "Messes with the pointer";
+    }
+
+    ndl_rhashtable_mkill(ret);
+    free(region);
 
     return NULL;
 }
