@@ -158,16 +158,19 @@ static void ndl_graph_clean_mark(ndl_graph *graph, ndl_ref root, int64_t sweep) 
                           root, NDL_SYM("\0gcsweep"), gcsweep);
     }
 
-    int count = ndl_node_pool_get_size((ndl_node_pool *) graph->pool, root);
+    void *curr = ndl_node_pool_kv_head((ndl_node_pool *) graph->pool, root);
 
-    for (int i = 0; i < count; i++) {
-        ndl_sym key = ndl_node_pool_get_key((ndl_node_pool *) graph->pool, root, i);
+    while (curr != NULL) {
+
+        ndl_sym key = ndl_node_pool_kv_key((ndl_node_pool *) graph->pool, root, curr);
+
         if (!NDL_ISHIDDEN(key)) {
-
             ndl_value next = ndl_node_pool_get((ndl_node_pool *) graph->pool, root, key);
             if (next.type == EVAL_REF && next.ref != NDL_NULL_REF)
                 ndl_graph_clean_mark(graph, next.ref, sweep);
         }
+
+        curr = ndl_node_pool_kv_next((ndl_node_pool *) graph->pool, root, curr);
     }
 }
 
@@ -215,17 +218,19 @@ static int ndl_graph_rm_backref(ndl_node_pool *pool, ndl_ref from, ndl_ref to) {
 
 static void ndl_graph_clean_remove(ndl_graph *graph, ndl_ref node) {
 
-    int count = ndl_node_pool_get_size((ndl_node_pool *) graph->pool, node);
+    void *curr = ndl_node_pool_kv_head((ndl_node_pool *) graph->pool, node);
 
-    for (int i = 0; i < count; i++) {
+    while (curr != NULL) {
 
-        ndl_sym key = ndl_node_pool_get_key((ndl_node_pool *) graph->pool, node, i);
+        ndl_sym key = ndl_node_pool_kv_key((ndl_node_pool *) graph->pool, node, curr);
 
         if (!NDL_ISHIDDEN(key)) {
             ndl_value val = ndl_node_pool_get((ndl_node_pool *) graph->pool, node, key);
             if ((val.type == EVAL_REF) && (val.ref != NDL_NULL_REF))
                 ndl_graph_rm_backref((ndl_node_pool *) graph->pool, val.ref, node);
         }
+
+        curr = ndl_node_pool_kv_next((ndl_node_pool *) graph->pool, node, curr);
     }
 
     ndl_node_pool_free((ndl_node_pool *) graph->pool, node);
@@ -311,16 +316,17 @@ int ndl_graph_del(ndl_graph *graph, ndl_ref node, ndl_sym key) {
 
 int64_t ndl_graph_size(ndl_graph *graph, ndl_ref node) {
 
-    int count = ndl_node_pool_get_size((ndl_node_pool *) graph->pool,
-                                       node);
+    void *curr = ndl_node_pool_kv_head((ndl_node_pool *) graph->pool, node);
 
     int sum = 0;
 
-    for (int i = 0; i < count; i++) {
-        ndl_sym key = ndl_node_pool_get_key((ndl_node_pool *) graph->pool,
-                                            node, i);
+    while (curr != NULL) {
+
+        ndl_sym key = ndl_node_pool_kv_key((ndl_node_pool *) graph->pool, node, curr);
         if (!NDL_ISHIDDEN(key))
             sum++;
+
+        curr = ndl_node_pool_kv_next((ndl_node_pool *) graph->pool, node, curr);
     }
 
     return sum;
@@ -334,21 +340,21 @@ ndl_value ndl_graph_get(ndl_graph *graph, ndl_ref node, ndl_sym key) {
 
 ndl_sym ndl_graph_index(ndl_graph *graph, ndl_ref node, int64_t index) {
 
-    int count = ndl_node_pool_get_size((ndl_node_pool *) graph->pool,
-                                       node);
+    void *curr = ndl_node_pool_kv_head((ndl_node_pool *) graph->pool, node);
 
     int sum = 0;
 
-    for (int i = 0; i < count; i++) {
+    while (curr != NULL) {
 
-        ndl_sym key = ndl_node_pool_get_key((ndl_node_pool *) graph->pool,
-                                            node, i);
+        ndl_sym key = ndl_node_pool_kv_key((ndl_node_pool *) graph->pool, node, curr);
 
         if (!NDL_ISHIDDEN(key)) {
             if (sum == index)
                 return key;
             sum++;
         }
+
+        curr = ndl_node_pool_kv_next((ndl_node_pool *) graph->pool, node, curr);
     }
 
     return NDL_NULL_SYM;
@@ -356,18 +362,18 @@ ndl_sym ndl_graph_index(ndl_graph *graph, ndl_ref node, int64_t index) {
 
 int64_t ndl_graph_backref_size(ndl_graph *graph, ndl_ref node) {
 
-    int count = ndl_node_pool_get_size((ndl_node_pool *) graph->pool,
-                                       node);
+    void *curr = ndl_node_pool_kv_head((ndl_node_pool *) graph->pool, node);
 
     int sum = 0;
 
-    for (int i = 0; i < count; i++) {
+    while (curr != NULL) {
 
-        ndl_sym key = ndl_node_pool_get_key((ndl_node_pool *) graph->pool,
-                                            node, i);
+        ndl_sym key = ndl_node_pool_kv_key((ndl_node_pool *) graph->pool, node, curr);
 
         if (NDL_ISBACKREF(key))
             sum++;
+
+        curr = ndl_node_pool_kv_next((ndl_node_pool *) graph->pool, node, curr);
     }
 
     return sum;
@@ -375,13 +381,11 @@ int64_t ndl_graph_backref_size(ndl_graph *graph, ndl_ref node) {
 
 ndl_ref ndl_graph_backref_index(ndl_graph *graph, ndl_ref node, int64_t index) {
 
-    int count = ndl_node_pool_get_size((ndl_node_pool *) graph->pool,
-                                       node);
+    void *curr = ndl_node_pool_kv_head((ndl_node_pool *) graph->pool, node);
 
-    for (int i = 0; i < count; i++) {
+    while (curr != NULL) {
 
-        ndl_sym key = ndl_node_pool_get_key((ndl_node_pool *) graph->pool,
-                                            node, i);
+        ndl_sym key = ndl_node_pool_kv_key((ndl_node_pool *) graph->pool, node, curr);
 
         if (NDL_ISBACKREF(key)) {
             if (index == 0)
@@ -389,6 +393,8 @@ ndl_ref ndl_graph_backref_index(ndl_graph *graph, ndl_ref node, int64_t index) {
 
             index--;
         }
+
+        curr = ndl_node_pool_kv_next((ndl_node_pool *) graph->pool, node, curr);
     }
 
     return NDL_NULL_REF;
@@ -470,14 +476,13 @@ static inline int64_t ndl_graph_to_mem_node(ndl_graph *graph, long int node, uin
     MEMPUSH(uint32_t, ENDIAN_TO_BIG_32(id));
     MEMPUSH(uint16_t, ENDIAN_TO_BIG_16(count));
 
-    int i;
-    for (i = 0; i < count; i++) {
+    void *currkv = ndl_node_pool_kv_head((ndl_node_pool *) graph->pool, node);
 
-        ndl_sym key = ndl_node_pool_get_key((ndl_node_pool *) graph->pool,
-                                            (ndl_ref) node, i);
+    while (currkv != NULL) {
 
-        ndl_value val = ndl_node_pool_get((ndl_node_pool *) graph->pool,
-                                          (ndl_ref) node, key);
+        ndl_sym key = ndl_node_pool_kv_key((ndl_node_pool *) graph->pool, node, currkv);
+
+        ndl_value val = ndl_node_pool_kv_val((ndl_node_pool *) graph->pool, (ndl_ref) node, currkv);
 
         int64_t used = ndl_graph_to_mem_kvpair(graph, key, val, maxlen - curr, to + curr);
 
@@ -485,6 +490,8 @@ static inline int64_t ndl_graph_to_mem_node(ndl_graph *graph, long int node, uin
             return -1;
 
         curr += (uint64_t) used;
+
+        currkv = ndl_node_pool_kv_next((ndl_node_pool *) graph->pool, node, currkv);
     }
 
     return (int64_t) curr;

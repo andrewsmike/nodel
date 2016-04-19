@@ -30,7 +30,7 @@ use. Nodel is now able to run programs generated from a basic assembly language.
 Future work
 -----------
 - Obliviate nodepool (replace with multiple slab hashtable pools for nodes)
-- Modify opcodes to accept constants, have branch default to next
+- Modify branch default to instpntr.next, verify constants in opcodes.
 - Continue work on the runtime systems
 - - Break into multiple files and refactor
 - - Add occasional GC call somewhere
