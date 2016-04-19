@@ -39,5 +39,11 @@ char *ndl_test_rehashtable_minit(void);
 char *ndl_test_rehashtable_it(void);
 char *ndl_test_rehashtable_volume(void);
 
+char *ndl_test_vector_msize(void);
+char *ndl_test_vector_init(void);
+char *ndl_test_vector_minit(void);
+char *ndl_test_vector_stack(void);
+char *ndl_test_vector_region(void);
+
 
 #endif /* NODEL_TEST_H */

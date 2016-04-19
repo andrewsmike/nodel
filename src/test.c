@@ -82,6 +82,12 @@ static inline void ndl_test_init(void) {
     ndl_test_register("ndl.rehashtable.minit", &ndl_test_rehashtable_minit);
     ndl_test_register("ndl.rehashtable.it", &ndl_test_rehashtable_it);
     ndl_test_register("ndl.rehashtable.volume", &ndl_test_rehashtable_volume);
+
+    ndl_test_register("ndl.vector.msize", &ndl_test_vector_msize);
+    ndl_test_register("ndl.vector.init", &ndl_test_vector_init);
+    ndl_test_register("ndl.vector.minit", &ndl_test_vector_minit);
+    ndl_test_register("ndl.vector.stack", &ndl_test_vector_stack);
+    ndl_test_register("ndl.vector.region", &ndl_test_vector_region);
 }
 
 int main(int argc, char *argv[]) {

@@ -17,7 +17,7 @@ TEST=$(SRC)/test
 INC=$(SRC)/include
 
 # Source and header files.
-SRC_OBJS=graph node asm runtime slab hashtable slabheap rehashtable nodepool eval opcodes
+SRC_OBJS=graph node asm runtime vector slab hashtable slabheap rehashtable nodepool eval opcodes
 INC_OBJS=graph node asm runtime
 
 OBJ_PATHS=$(addprefix $(SRC)/, $(addsuffix .o, $(SRC_OBJS)))
