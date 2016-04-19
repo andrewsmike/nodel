@@ -257,6 +257,14 @@ uint64_t ndl_slab_size(ndl_slab *slab) {
     return slab->elem_count;
 }
 
+uint64_t ndl_slab_elem_size(ndl_slab *slab) {
+
+    if (slab == NULL)
+        return 0;
+
+    return slab->elem_size;
+}
+
 void ndl_slab_print(ndl_slab *slab) {
 
     printf("Printing slab.\n");

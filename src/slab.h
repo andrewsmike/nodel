@@ -102,9 +102,13 @@ ndl_slab_index ndl_slab_next(ndl_slab *slab, ndl_slab_index last);
  *
  * size() returns the number of active elements in the current slab.
  * cap() returns the total current size (in elems) of the slab.
+ *
+ * elem_size() returns the size of each element.
  */
 uint64_t ndl_slab_size(ndl_slab *slab);
 uint64_t ndl_slab_cap (ndl_slab *slab);
+
+uint64_t ndl_slab_elem_size(ndl_slab *slab);
 
 /* Print the entirety of the slab. */
 void ndl_slab_print(ndl_slab *slab);
