@@ -28,5 +28,7 @@ char *ndl_test_slab_init(void);
 char *ndl_test_slab_minit(void);
 char *ndl_test_slab_it(void);
 
+char *ndl_test_node_value_print(void);
+
 
 #endif /* NODEL_TEST_H */

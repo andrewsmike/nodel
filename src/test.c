@@ -71,6 +71,8 @@ static inline void ndl_test_init(void) {
     ndl_test_register("ndl.slab.init", &ndl_test_slab_init);
     ndl_test_register("ndl.slab.minit", &ndl_test_slab_minit);
     ndl_test_register("ndl.slab.it", &ndl_test_slab_it);
+
+    ndl_test_register("ndl.node.value.print", &ndl_test_node_value_print);
 }
 
 int main(int argc, char *argv[]) {

@@ -14,50 +14,6 @@
 #include "eval.h"
 #include "asm.h"
 
-static int testprettyprint(void) {
-
-    printf("Testing value pretty printing.\n");
-
-    ndl_value values[] = {
-        NDL_VALUE(EVAL_NONE, ref=27),
-        NDL_VALUE(EVAL_REF, ref=NDL_NULL_REF),
-        NDL_VALUE(EVAL_REF, ref=0x0001),
-        NDL_VALUE(EVAL_REF, ref=0xABC4),
-        NDL_VALUE(EVAL_REF, ref=0xABCDEF),
-        NDL_VALUE(EVAL_SYM, sym=NDL_SYM("hello   ")),
-        NDL_VALUE(EVAL_SYM, sym=NDL_SYM("\0hello ")),
-        NDL_VALUE(EVAL_SYM, sym=NDL_SYM("\0\0\0\0\0\0\0\0")),
-        NDL_VALUE(EVAL_SYM, sym=NDL_SYM("        ")),
-        NDL_VALUE(EVAL_SYM, sym=NDL_SYM("next    ")),
-        NDL_VALUE(EVAL_SYM, sym=NDL_SYM("    last")),
-        NDL_VALUE(EVAL_INT, num=0),
-        NDL_VALUE(EVAL_INT, num=-1),
-        NDL_VALUE(EVAL_INT, num=1),
-        NDL_VALUE(EVAL_INT, num=10000),
-        NDL_VALUE(EVAL_INT, num=10000009),
-        NDL_VALUE(EVAL_INT, num=-10000000009),
-        NDL_VALUE(EVAL_FLOAT, real=-100000000.0),
-        NDL_VALUE(EVAL_FLOAT, real=100000000.0),
-        NDL_VALUE(EVAL_FLOAT, real=1000.03),
-        NDL_VALUE(EVAL_FLOAT, real=0.00000000004),
-        NDL_VALUE(EVAL_FLOAT, real=-0.00000000004),
-        NDL_VALUE(EVAL_FLOAT, real=-0.00434),
-        NDL_VALUE(EVAL_FLOAT, real=1.3287),
-        NDL_VALUE(EVAL_NONE, ref=NDL_NULL_REF)
-    };
-
-    char buff[16];
-    buff[15] = '\0';
-
-    int i;
-    for (i = 0; values[i].type != EVAL_NONE || values[i].ref != NDL_NULL_REF; i++) {
-        ndl_value_to_string(values[i], 15, buff);
-        printf("%2ith value: %s.\n", i, buff);
-    }
-
-    return 0;
-}
-
 static ndl_ref testgraphalloc(ndl_graph *graph) {
 
     ndl_ref ret = ndl_graph_alloc(graph);
@@ -479,80 +435,6 @@ static int testruntimefibo(int steps, const char *path) {
     }
 
     ndl_runtime_kill(runtime);
-
-    return 0;
-}
-
-typedef struct kv_pair_s {
-
-    uint8_t key[8];
-    uint64_t value;
-} kv_pair;
-
-static int testslab(void) {
-
-    printf("Beginning slab tests.\n");
-
-    ndl_slab *slab = ndl_slab_init(sizeof(kv_pair), NDL_NULL_INDEX);
-
-    if (slab == NULL) {
-        fprintf(stderr, "Failed to allocate slab.\n");
-        exit(EXIT_FAILURE);
-    }
-
-    printf("Slab (used+unused)/size: (%ld+%ld)/%ld.\n",
-           ndl_slab_size(slab),
-           ndl_slab_cap(slab) - ndl_slab_size(slab),
-           ndl_slab_cap(slab));
-
-    ndl_slab_index a = ndl_slab_head(slab);
-    ndl_slab_index b = ndl_slab_next(slab, a);
-    printf("Slab head, next: %ld, %ld.\n", a, b);
-
-    ndl_slab_index c = ndl_slab_alloc(slab);
-    a = ndl_slab_head(slab);
-    b = ndl_slab_next(slab, a);
-    printf("Allocated, head, next: %ld, %ld, %ld.\n", c, a, b);
-
-    ndl_slab_index d = ndl_slab_alloc(slab);
-    kv_pair *kva = ndl_slab_get(slab, c);
-    kv_pair *kvb = ndl_slab_get(slab, d);
-    printf("Allocated location: %p, %p.\n", (void *) kva, (void *) kvb);
-    ndl_slab_print(slab);
-
-    printf("Allocating 4ki nodes.\n");
-    uint64_t i;
-    for (i = 0; i < 4096; i++)
-        ndl_slab_alloc(slab);
-
-    printf("Freeing node.\n");
-    ndl_slab_free(slab, d);
-
-    printf("Slab (used+unused)/size: (%ld+%ld)/%ld.\n",
-           ndl_slab_size(slab),
-           ndl_slab_cap(slab) - ndl_slab_size(slab),
-           ndl_slab_cap(slab));
-    printf("Got %ld after freeing %ld.\n", ndl_slab_alloc(slab), d);
-
-    printf("Freeing 4k nodes.\n");
-    for (i = 0; i < 4000; i++)
-        ndl_slab_free(slab, i + 10);
-    printf("Slab (used+unused)/size: (%ld+%ld)/%ld.\n",
-           ndl_slab_size(slab),
-           ndl_slab_cap(slab) - ndl_slab_size(slab),
-           ndl_slab_cap(slab));
-    ndl_slab_print(slab);
-
-    printf("Allocating 2k nodes.\n");
-    for (i = 0; i < 4096; i++)
-        ndl_slab_alloc(slab);
-
-    printf("Slab (used+unused)/size: (%ld+%ld)/%ld.\n",
-           ndl_slab_size(slab),
-           ndl_slab_cap(slab) - ndl_slab_size(slab),
-           ndl_slab_cap(slab));
-
-    ndl_slab_kill(slab);
 
     return 0;
 }
@@ -985,45 +867,39 @@ int main(int argc, const char *argv[]) {
     int err = 0;
     switch (test) {
     case 0:
-        err = testprettyprint();
-        break;
-    case 1:
         err = testgraph();
         break;
-    case 2:
+    case 1:
         err = testruntimeadd();
         break;
-    case 3:
+    case 2:
         err = testruntimefork(10);
         break;
-    case 4:
+    case 3:
         err = testgraphsave();
         break;
-    case 5:
-        err = testslab();
-        break;
-    case 6:
+    case 4:
         err = testhashtable();
         break;
-    case 7:
+    case 5:
         err = testrehashtable();
         break;
-    case 8:
+    case 6:
         if (argc >= 3)
             err = testruntimefibo(10, argv[2]);
         else
             err = testruntimefibo(10, NULL);
         break;
-    case 9:
+    case 7:
         if (argc >= 3)
             err = testruntimefibo(atoi(argv[2]), NULL);
         else
             err = testruntimefibo(1000000, NULL);
         break;
-    case 10:
+    case 8:
         err = testassembler();
         break;
-    case 11:
+    case 9:
         err = testassemblerfibo(10);
         break;
     default:
