@@ -54,6 +54,8 @@ Future work
 - Add in-place usage of datastructures where applicable
 - BASIC-inspired datastructure oriented high level language compiler (and utilities)
 - graph <---> assembly tools
+- Basic vector container
+- Replace slabheap with vectorheap
 - NCURSES test visualization interface.
 - Actual GUI (What to use, oh god... xlib? gtk? pygame? cat > /dev/printer?)
 
