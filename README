@@ -33,29 +33,29 @@ Future work
 - Modify branch default to instpntr.next, verify constants in opcodes.
 - Continue work on the runtime systems
 - - Break into multiple files and refactor
+- - Better tools for debugging specific processes (process error message, error state)
 - - Add occasional GC call somewhere
 - - Add excall hook and registry system
+- - - Process management excalls?
 - - Debug and test like hell
 - - Heavy performance analysis (how slow are waittables?)
+- - Runtime serialization (possibly just encode into graph, save graph and root)
 - Graph_dcopy functionality
-- Storage excalls using ^graph_dcopy
+- - Toy assembler command
+- - Storage excalls (dcopy) (excalls)
+- Toy interpreter command
 - Assembly differ for visualizations
-- Toy assembler command, toy interpreter command
-- Possible optimizations to hashing function? (fastpath/shift for cap==2<<n?)
 - Recursive resizable hashtable for efficient node ID -> *hashtable lookup.
+- - Or fancy lazy copy/growth hashtable
 - Refactor codebase with consistent style (naming, whitespace, struct members, etc)
-- Process management excalls?
 - Features for embedding into games (limits on process count, frequency, nodecount, etc)
 - Further performance analysis
-- Better tools for debugging specific processes (process error message, error state)
-- Runtime serialization (possibly just encode into graph, save graph and root)
-- Rewrite graph serialization without macros
+- Further tests
+- Basic vector container
+- - Move heap to vector implementation
 - Improve testing system and refactor tests.
-- Add in-place usage of datastructures where applicable
 - BASIC-inspired datastructure oriented high level language compiler (and utilities)
 - graph <---> assembly tools
-- Basic vector container
-- Replace slabheap with vectorheap
 - NCURSES test visualization interface.
 - Actual GUI (What to use, oh god... xlib? gtk? pygame? cat > /dev/printer?)
 
