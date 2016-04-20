@@ -139,7 +139,7 @@ char *ndl_test_vector_region(void) {
 
     if (data[0] != 'a' || data[1] != 'b' || data[2] != '\0') {
         ndl_vector_kill(vec);
-        return "Got wrong contents";
+        return "Got initial wrong contents";
     }
 
     int err = ndl_vector_delete(vec, 1);
@@ -159,6 +159,12 @@ char *ndl_test_vector_region(void) {
     if (data == NULL) {
         ndl_vector_kill(vec);
         return "Failed to range insert";
+    }
+
+    data = ndl_vector_get(vec, 0);
+    if (data == NULL) {
+        ndl_vector_kill(vec);
+        return "Failed to get after range insert";
     }
 
     if (ndl_vector_size(vec) != 15) {
