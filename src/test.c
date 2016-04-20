@@ -88,6 +88,10 @@ static inline void ndl_test_init(void) {
     ndl_test_register("ndl.vector.minit", &ndl_test_vector_minit);
     ndl_test_register("ndl.vector.stack", &ndl_test_vector_stack);
     ndl_test_register("ndl.vector.region", &ndl_test_vector_region);
+
+    ndl_test_register("ndl.heap.msize", &ndl_test_heap_msize);
+    ndl_test_register("ndl.heap.init", &ndl_test_heap_init);
+    ndl_test_register("ndl.heap.minit", &ndl_test_heap_minit);
 }
 
 int main(int argc, char *argv[]) {

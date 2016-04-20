@@ -50,10 +50,8 @@ Future work
 - Refactor codebase with consistent style (naming, whitespace, struct members, etc)
 - Features for embedding into games (limits on process count, frequency, nodecount, etc)
 - Further performance analysis
-- Further tests
-- Basic vector container
-- - Move heap to vector implementation
-- Improve testing system and refactor tests.
+- Improve testing system and more tests.
+- Move heap to vector implementation
 - BASIC-inspired datastructure oriented high level language compiler (and utilities)
 - graph <---> assembly tools
 - NCURSES test visualization interface.
