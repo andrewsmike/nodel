@@ -65,3 +65,77 @@ char *ndl_test_heap_minit(void) {
     return NULL;
 }
 
+#define HEAPFAIL(cond, msg) if (cond) {ndl_heap_kill(heap); return msg;}
+#define HEAPPUT(var, number)                    \
+    do {                                        \
+        var = number;                           \
+        ret = ndl_heap_put(heap, &var);         \
+        HEAPFAIL(ret == NULL, "Failed to put"); \
+    } while (0)
+
+char *ndl_test_heap_ints(void) {
+
+    ndl_heap *heap = ndl_heap_init(sizeof(int), &ndl_test_heap_cmp_func);
+    if (heap == NULL)
+        return "Failed to allocate";
+
+    void *ret;
+    int a;
+    HEAPPUT(a,  0);
+    HEAPPUT(a,  7);
+    HEAPPUT(a, 14);
+    HEAPPUT(a,  2);
+    HEAPPUT(a, -1);
+
+    int *head = (int *) ndl_heap_peek(heap);
+    HEAPFAIL(*head != 14, "Heap ordered wrong");
+
+    int err = ndl_heap_pop(heap);
+    HEAPFAIL(err != 0, "Failed to delete head");
+
+    head = (int *) ndl_heap_peek(heap);
+    HEAPFAIL(*head != 7, "Heap ordered wrong");
+
+    ndl_heap_kill(heap);
+
+    return NULL;
+}
+
+char *ndl_test_heap_meta(void) {
+
+    ndl_heap *heap = ndl_heap_init(sizeof(int), &ndl_test_heap_cmp_func);
+    if (heap == NULL)
+        return "Failed to allocate";
+
+    int a;
+    a = 10;
+    ndl_heap_put(heap, &a); a = 7;
+    ndl_heap_put(heap, &a); a = 14;
+    ndl_heap_put(heap, &a); a = 2;
+    ndl_heap_put(heap, &a); a = -1;
+    ndl_heap_put(heap, &a);
+
+    if (ndl_heap_size(heap) != 5) {
+        ndl_heap_kill(heap);
+        return "Failed to put elements";
+    }
+
+    if (ndl_heap_cap(heap) < 5) {
+        ndl_heap_kill(heap);
+        return "Invalid capacity";
+    }
+
+    if (ndl_heap_data_size(heap) != sizeof(int)) {
+        ndl_heap_kill(heap);
+        return "Bad data size";
+    }
+
+    if (ndl_heap_compare(heap) != ndl_test_heap_cmp_func) {
+        ndl_heap_kill(heap);
+        return "Bad compare";
+    }
+
+    ndl_heap_kill(heap);
+
+    return NULL;
+}

@@ -48,6 +48,8 @@ char *ndl_test_vector_region(void);
 char *ndl_test_heap_msize(void);
 char *ndl_test_heap_init(void);
 char *ndl_test_heap_minit(void);
+char *ndl_test_heap_ints(void);
+char *ndl_test_heap_meta(void);
 
 
 #endif /* NODEL_TEST_H */
