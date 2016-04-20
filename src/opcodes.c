@@ -365,7 +365,12 @@ BEGINOP(branch) {
     if (cmp ==  0) branch = DS("eq      ");
     if (cmp ==  1) branch = DS("gt      ");
 
-    LOADREF(pc, next, branch);
+    ndl_value next = ndl_graph_get(graph, pc, branch);
+    if (next.type == EVAL_NONE) {
+        next = ndl_graph_get(graph, pc, DS("instpntr"));
+    }
+    ASSERTNOTNONE(next);
+
     STORE(local, next, DS("instpntr"));
 
     return res;
