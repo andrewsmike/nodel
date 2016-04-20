@@ -96,6 +96,12 @@ char *ndl_test_heap_ints(void) {
     head = (int *) ndl_heap_peek(heap);
     HEAPFAIL(*head != 7, "Heap ordered wrong");
 
+    *head = -10;
+    ndl_heap_readj(heap, head);
+    head = (int *) ndl_heap_peek(heap);
+    HEAPFAIL(*head != 2, "Heap ordered wrong");
+    
+
     ndl_heap_kill(heap);
 
     return NULL;

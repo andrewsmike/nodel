@@ -111,6 +111,29 @@ static inline ndl_slab *ndl_rhashtable_pool_get_slab(ndl_rhashtable_pool *pool, 
 static inline ndl_hashtable *ndl_rhashtable_pool_grow(ndl_rhashtable_pool *pool, ndl_hashtable *elem) {
 
     /* TODO: If uncomfortably large, alloc, copy, delete, return. */
+    uint64_t size = ndl_hashtable_size(elem);
+    uint64_t cap = ndl_hashtable_cap(elem);
+
+    if ((size * 4) <= (cap * 3))
+        return elem;
+
+    ndl_slab *htslab = ndl_rhashtable_pool_get_slab(pool, cap*2);
+
+    if (htslab == NULL) {
+
+        ndl_slab *slab = ndl_rhashtable_pool_index_slab(pool, pool->slab_count - 1);
+        ndl_slab_index miscslab_index = ndl_slab_alloc(slab);
+        if (miscslab_index == NDL_NULL_INDEX)
+            return elem;
+
+        
+
+
+    } else {
+
+
+    }
+
     return elem;
 }
 

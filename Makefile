@@ -14,46 +14,55 @@ LN=ln
 # Directories.
 SRC=src
 TEST=$(SRC)/test
-INC=$(SRC)/include
+SUBS=container runtime core test
 
 # Source and header files.
-SRC_OBJS=graph node asm runtime heap vector slab hashtable slabheap rehashtable nodepool eval opcodes
-INC_OBJS=graph node asm runtime
+SRC_CORE_OBJS=graph node asm nodepool eval opcodes
+SRC_CONTAINER_OBJS =heap vector hashtable slab slabheap rehashtable
+SRC_RUNTIME_OBJS=runtime
+SRC_OBJS=$(addprefix core/, $(SRC_CORE_OBJS)) \
+         $(addprefix container/, $(SRC_CONTAINER_OBJS)) \
+         $(addprefix runtime/, $(SRC_RUNTIME_OBJS))
 
 OBJ_PATHS=$(addprefix $(SRC)/, $(addsuffix .o, $(SRC_OBJS)))
 SRC_PATHS=$(addprefix $(SRC)/, $(addsuffix .c, $(SRC_OBJS)))
+INC_PATHS=$(addprefix $(SRC)/, $(addsuffix .h, $(SRC_OBJS)))
 
 TEST_OBJ_PATHS=$(addprefix $(TEST)/, $(addsuffix .o, $(SRC_OBJS)))
-TEST_PATHS=$(addprefix $(TEST)/, $(addsuffix .c, $(SRC_OBJS)))
+TEST_SRC_PATHS=$(addprefix $(TEST)/, $(addsuffix .c, $(SRC_OBJS)))
 
-INC_PATHS=$(addprefix $(INC)/, $(addsuffix .h, $(INC_OBJS)))
+INC_SUBS=$(addprefix -I, $(addprefix $(SRC)/, $(SUBS)))
 
 LIBS=m
 
 # Compiler flags.
-CCFLAGS=-std=gnu11 -I$(INC) -I$(SRC) -Wall -Wextra -Wno-unused-parameter -Wformat -Wpedantic -Wconversion -Wmissing-prototypes -Werror
-DEBUG= -g #-pg -Ofast
-LIBFLAGS=$(addprefix -l, $(LIBS))
+CCWARN=all extra no-unused-parameter format pedantic conversion missing-prototypes error
+CCVERSION=gnu11
+CCDEBUG= -g #-pg -Ofast
+
+CCFLAGS=-std=$(CCVERSION) $(INC_SUBS) $(addprefix -W, $(CCWARN)) $(CCDEBUG)
+
+CCLIBS=$(addprefix -l, $(LIBS))
 
 # Default rule for compiling object files.
-%.o: %.c $(INC_PATHS) $(SRC)/*.h
-	$(CC) $(CCFLAGS) $(DEBUG) -c $< -o $@
+%.o: %.c $(INC_PATHS)
+	$(CC) $(CCFLAGS) -c $< -o $@
 
 # Rule for compiling main executable.
 ndlrun: $(OBJ_PATHS) $(SRC)/nodel.o
-	$(CC) $(DEBUG) $(LIBFLAGS) $^ -o $@
+	$(CC) $(CCDEBUG) $(CCLIBS) $^ -o $@
 
 # Rule for compiling main executable.
 ndlasm: $(OBJ_PATHS) $(SRC)/nodelasm.o
-	$(CC) $(DEBUG) $(LIBFLAGS) $^ -o $@
+	$(CC) $(CCDEBUG) $(CCLIBS) $^ -o $@
 
 # Rule for compiling main executable.
 main: $(OBJ_PATHS) $(SRC)/main.o
-	$(CC) $(DEBUG) $(LIBFLAGS) $^ -o $@
+	$(CC) $(CCDEBUG) $(CCLIBS) $^ -o $@
 
 # Rule for compiling testing executable.
 ndltest: $(OBJ_PATHS) $(TEST_OBJ_PATHS) $(SRC)/test.o
-	$(CC) $(DEBUG) $(LIBFLAGS) $^ -o $@
+	$(CC) $(CCDEBUG) $(CCLIBS) $^ -o $@
 
 run: ndlrun
 	./ndlrun
