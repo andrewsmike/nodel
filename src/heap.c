@@ -82,7 +82,7 @@ static inline void *ndl_heap_lchild(ndl_vector *vec, void *elem) {
     uint64_t elem_size = ndl_vector_elem_size(vec);
     uint64_t index = ((uint64_t) ((uint8_t *) elem - (uint8_t *) base)) / elem_size;
 
-    uint64_t cindex = index << 1;
+    uint64_t cindex = (index << 1) + 1;
 
     if (cindex >= ndl_vector_size(vec))
         return NULL;
@@ -96,7 +96,7 @@ static inline void *ndl_heap_rchild(ndl_vector *vec, void *elem) {
     uint64_t elem_size = ndl_vector_elem_size(vec);
     uint64_t index = ((uint64_t) ((uint8_t *) elem - (uint8_t *) base)) / elem_size;
 
-    uint64_t cindex = (index << 1) + 1;
+    uint64_t cindex = (index << 1) + 2;
 
     if (cindex >= ndl_vector_size(vec))
         return NULL;
@@ -149,37 +149,33 @@ static inline void *ndl_heap_sink(ndl_heap *heap, void *node) {
 
     uint64_t elem_size = ndl_vector_elem_size(vec);
 
-    void *lchild = ndl_heap_lchild(vec, node);
-    while (lchild != NULL) {
+    while (1) {
 
-        if (heap->compare(node, lchild) < 0) {
+        void *best;
 
-            ndl_heap_swap(elem_size, node, lchild);
-
-            node = lchild;
-            lchild = ndl_heap_lchild(vec, node);
-
-            continue;
-        }
+        void *lchild = ndl_heap_lchild(vec, node);
+        if (lchild == NULL)
+            return node;
 
         void *rchild = ndl_heap_rchild(vec, node);
+
         if (rchild == NULL)
-            break;
+            best = lchild;
+        else {
+            best = (heap->compare(lchild, rchild) < 0)? rchild : lchild;
+        }
 
-        if (heap->compare(node, rchild) < 0) {
+        if (heap->compare(node, best) < 0) {
 
-            ndl_heap_swap(elem_size, node, rchild);
+            ndl_heap_swap(elem_size, node, best);
 
-            node = rchild;
-            lchild = ndl_heap_lchild(vec, node);
+            node = best;
 
             continue;
         }
 
         return node;
     }
-
-    return node;
 }
 
 static inline void ndl_heap_delete(ndl_heap *heap, void *node) {
@@ -217,7 +213,7 @@ void *ndl_heap_peek(ndl_heap *heap) {
     return ndl_vector_get(vec, 0);
 }
 
-void *ndl_heap_node_head(ndl_heap *heap) {
+void *ndl_heap_head(ndl_heap *heap) {
 
     ndl_vector *vec = (ndl_vector *) heap->vector;
     if (ndl_vector_size(vec) == 0)
@@ -226,7 +222,7 @@ void *ndl_heap_node_head(ndl_heap *heap) {
     return ndl_vector_get(vec, 0);
 }
 /* TODO: Move iteration logic to vector? */
-void *ndl_heap_node_next(ndl_heap *heap, void *prev) {
+void *ndl_heap_next(ndl_heap *heap, void *prev) {
 
     if (prev == NULL)
         return NULL;
@@ -236,7 +232,7 @@ void *ndl_heap_node_next(ndl_heap *heap, void *prev) {
     if (size == 0)
         return NULL;
 
-    uint8_t *max = ndl_vector_get(vec, ndl_vector_size(vec) - 1);
+    uint8_t *max = ndl_vector_get(vec, ndl_vector_size(vec) - 2);
 
     if (prev <= (void *) max)
         return (void *) (((uint8_t *) prev) + ndl_vector_elem_size(vec));

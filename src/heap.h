@@ -67,8 +67,8 @@ int   ndl_heap_del(ndl_heap *heap, void *data);
  * node_next() gets the next node in the heap.
  *     Returns NULL at end-of-list.
  */
-void *ndl_heap_node_head(ndl_heap *heap);
-void *ndl_heap_node_next(ndl_heap *heap, void *prev);
+void *ndl_heap_head(ndl_heap *heap);
+void *ndl_heap_next(ndl_heap *heap, void *prev);
 
 /* Heap metadata.
  *
