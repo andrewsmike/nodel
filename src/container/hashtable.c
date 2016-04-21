@@ -54,15 +54,8 @@ ndl_hashtable *ndl_hashtable_minit(void *region, uint64_t key_size, uint64_t val
     table->capacity = capacity;
 
     uint64_t bucketsize = sizeof(ndl_hashtable_bucket) + key_size + val_size;
-    ndl_hashtable_bucket *bucket = (ndl_hashtable_bucket *) table->data;
 
-    uint64_t i;
-    for (i = 0; i < capacity; i++) {
-
-        bucket->marker = 0;
-
-        bucket = (ndl_hashtable_bucket *) (((uint8_t *) bucket) + bucketsize);
-    }
+    memset(table->data, 0, (uint64_t) bucketsize * capacity);
 
     return table;
 }
