@@ -23,12 +23,12 @@ int ndl_test_register(const char *path, ndl_test_func func);
 int ndl_test_irun(const char *prefix);
 
 /* TODO: Set up an automatic test symbol accounting system. */
+
+/* Containers. */
 char *ndl_test_slab_msize(void);
 char *ndl_test_slab_init(void);
 char *ndl_test_slab_minit(void);
 char *ndl_test_slab_it(void);
-
-char *ndl_test_node_value_print(void);
 
 char *ndl_test_hashtable_alloc(void);
 char *ndl_test_hashtable_minit(void);
@@ -51,5 +51,11 @@ char *ndl_test_heap_minit(void);
 char *ndl_test_heap_ints(void);
 char *ndl_test_heap_meta(void);
 
+
+/* Core */
+char *ndl_test_node_value_print(void);
+
+char *ndl_test_graph_alloc(void);
+char *ndl_test_graph_minit(void);
 
 #endif /* NODEL_TEST_H */

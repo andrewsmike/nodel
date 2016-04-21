@@ -67,12 +67,11 @@ int ndl_test_irun(const char *prefix) {
 /* TODO: Set up an automatic test symbol accounting system. */
 static inline void ndl_test_init(void) {
 
+    /* Containers. */
     ndl_test_register("ndl.slab.msize", &ndl_test_slab_msize);
     ndl_test_register("ndl.slab.init", &ndl_test_slab_init);
     ndl_test_register("ndl.slab.minit", &ndl_test_slab_minit);
     ndl_test_register("ndl.slab.it", &ndl_test_slab_it);
-
-    ndl_test_register("ndl.node.value.print", &ndl_test_node_value_print);
 
     ndl_test_register("ndl.hashtable.alloc", &ndl_test_hashtable_alloc);
     ndl_test_register("ndl.hashtable.minit", &ndl_test_hashtable_minit);
@@ -94,6 +93,12 @@ static inline void ndl_test_init(void) {
     ndl_test_register("ndl.heap.minit", &ndl_test_heap_minit);
     ndl_test_register("ndl.heap.ints", &ndl_test_heap_ints);
     ndl_test_register("ndl.heap.meta", &ndl_test_heap_meta);
+
+    /* Core. */
+    ndl_test_register("ndl.node.value.print", &ndl_test_node_value_print);
+
+    ndl_test_register("ndl.graph.alloc", &ndl_test_graph_alloc);
+    ndl_test_register("ndl.graph.minit", &ndl_test_graph_minit);
 }
 
 int main(int argc, char *argv[]) {

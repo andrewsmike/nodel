@@ -3,7 +3,11 @@
 
 #include "node.h"
 
-typedef struct ndl_graph_s ndl_graph;
+typedef struct ndl_graph_s {
+
+    int64_t sweep;
+    uint8_t pool[];
+} ndl_graph;
 
 /* Create and destroy a node graph.
  *
@@ -105,8 +109,8 @@ ndl_graph *ndl_graph_from_mem(                  uint64_t maxlen, void *mem);
  *     Returns the number of copied roots on success, -1 on error.
  *     Writes the new addresses of the root nodes to the given array.
  */
-int ndl_graph_copy (ndl_graph *to, ndl_graph *from, ndl_ref **refs);
-int ndl_graph_dcopy(ndl_graph *to, ndl_graph *from, ndl_ref **roots);
+int ndl_graph_copy (ndl_graph *to, ndl_graph *from, ndl_ref *refs);
+int ndl_graph_dcopy(ndl_graph *to, ndl_graph *from, ndl_ref *roots);
 
 /* Print the entirety of a graph. */
 void ndl_graph_print(ndl_graph *graph);
