@@ -99,6 +99,12 @@ static inline void ndl_test_init(void) {
 
     ndl_test_register("ndl.graph.alloc", &ndl_test_graph_alloc);
     ndl_test_register("ndl.graph.minit", &ndl_test_graph_minit);
+    ndl_test_register("ndl.graph.salloc", &ndl_test_graph_salloc);
+    ndl_test_register("ndl.graph.gc", &ndl_test_graph_gc);
+    ndl_test_register("ndl.graph.kv_it", &ndl_test_graph_kv_it);
+    ndl_test_register("ndl.graph.copy", &ndl_test_graph_copy);
+    ndl_test_register("ndl.graph.backref", &ndl_test_graph_backref);
+    ndl_test_register("ndl.graph.mem", &ndl_test_graph_mem);
 }
 
 int main(int argc, char *argv[]) {

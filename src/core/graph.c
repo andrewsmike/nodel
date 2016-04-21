@@ -356,44 +356,59 @@ ndl_sym ndl_graph_index(ndl_graph *graph, ndl_ref node, int64_t index) {
     return NDL_NULL_SYM;
 }
 
-int64_t ndl_graph_backref_size(ndl_graph *graph, ndl_ref node) {
+static inline void *ndl_graph_backref_next_back(ndl_graph *graph, ndl_ref node, void *curr) {
 
-    void *curr = ndl_node_pool_kv_head((ndl_node_pool *) graph->pool, node);
-
-    int sum = 0;
-
+    ndl_node_pool *pool = (ndl_node_pool *) graph->pool;
     while (curr != NULL) {
-
-        ndl_sym key = ndl_node_pool_kv_key((ndl_node_pool *) graph->pool, node, curr);
-
+        ndl_sym key = ndl_node_pool_kv_key(pool, node, curr);
         if (NDL_ISBACKREF(key))
-            sum++;
+            return curr;
 
-        curr = ndl_node_pool_kv_next((ndl_node_pool *) graph->pool, node, curr);
+        curr = ndl_node_pool_kv_next(pool, node, curr);
     }
 
-    return sum;
+    return NULL;
 }
 
-ndl_ref ndl_graph_backref_index(ndl_graph *graph, ndl_ref node, int64_t index) {
+void *ndl_graph_backref_head(ndl_graph *graph, ndl_ref node) {
 
     void *curr = ndl_node_pool_kv_head((ndl_node_pool *) graph->pool, node);
 
-    while (curr != NULL) {
+    return ndl_graph_backref_next_back(graph, node, curr);
+}
 
-        ndl_sym key = ndl_node_pool_kv_key((ndl_node_pool *) graph->pool, node, curr);
+void *ndl_graph_backref_next(ndl_graph *graph, ndl_ref node, void *prev) {
 
-        if (NDL_ISBACKREF(key)) {
-            if (index == 0)
-                return NDL_DEBACKREF(key);
+    prev = ndl_node_pool_kv_next((ndl_node_pool *) graph->pool, node, prev);
 
-            index--;
-        }
+    return ndl_graph_backref_next_back(graph, node, prev);
+}
 
-        curr = ndl_node_pool_kv_next((ndl_node_pool *) graph->pool, node, curr);
-    }
+ndl_ref ndl_graph_backref_node(ndl_graph *graph, ndl_ref node, void *curr) {
 
-    return NDL_NULL_REF;
+    ndl_sym key = ndl_node_pool_kv_key((ndl_node_pool *) graph->pool, node, curr);
+    if ((key == NDL_NULL_SYM) || (!NDL_ISBACKREF(key)))
+        return NDL_NULL_REF;
+    else
+        return NDL_DEBACKREF(key);
+}
+
+uint64_t ndl_graph_backref_count(ndl_graph *graph, ndl_ref node, void *curr) {
+
+    ndl_value val = ndl_node_pool_kv_val((ndl_node_pool *) graph->pool, node, curr);
+    if (val.type != EVAL_INT)
+        return 0;
+    else
+        return (uint64_t) val.num;
+}
+
+uint64_t ndl_graph_backrefs(ndl_graph *graph, ndl_ref to, ndl_ref from) {
+
+    ndl_value val = ndl_node_pool_get((ndl_node_pool *) graph->pool, to, NDL_BACKREF(from));
+    if (val.type != EVAL_INT)
+        return 0;
+    else
+        return (uint64_t) val.num;
 }
 
 /* Serialization format:

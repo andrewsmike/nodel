@@ -69,15 +69,31 @@ ndl_sym ndl_graph_index(ndl_graph *graph, ndl_ref node, int64_t index);
 
 
 /* Search backreferences.
- * Every node that references this node is indexable.
- * If a node references this node multiple times, it only has one backref.
+ * You may iterate over all backrefs, or you may explicitly
+ * check the number of backrefs from one node to another.
+ * The backref iterator is an opaque pointer, from which you can get
+ * the next, or the source node and total reference count.
  *
- * size() gets the number of backreferences (including self.)
- * index() gets the nth backreference.
+ * backref_head() gets the first backref iterator for a node.
+ *     NULL on error or end-of-list.
+ * backref_next() gets the next backref iterator for a node.
+ *     NULL on error or end-of-list.
+ *
+ * backref_node() gets the source node for the given iterator.
+ *     NDL_NULL_REF on error.
+ * backref_count() gets the total number of references the source node has to this node.
+ *     Zero on error.
+ *
+ * backrefs() gets the number of references the 'from' node has to the 'to' node.
+ *     Zero on error.
  */
-int64_t ndl_graph_backref_size (ndl_graph *graph, ndl_ref node);
-ndl_ref ndl_graph_backref_index(ndl_graph *graph, ndl_ref node, int64_t index);
+void *ndl_graph_backref_head(ndl_graph *graph, ndl_ref node);
+void *ndl_graph_backref_next(ndl_graph *graph, ndl_ref node, void *prev);
 
+ndl_ref  ndl_graph_backref_node (ndl_graph *graph, ndl_ref node, void *curr);
+uint64_t ndl_graph_backref_count(ndl_graph *graph, ndl_ref node, void *curr);
+
+uint64_t ndl_graph_backrefs(ndl_graph *graph, ndl_ref to, ndl_ref from);
 
 /* Graph serialization.
  * Root/normal property is preserved, as well as addressing.
