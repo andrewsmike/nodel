@@ -39,15 +39,18 @@ uint64_t    ndl_vector_msize(uint64_t elem_size);
  * get() gets the element with the given index, or NULL.
  *
  * push() pushes an element to the back of the vector.
+ *     If elem is NULL, initializes element to zero.
  * pop() deletes the element at the back of the vector.
  *     Returns 0 on success, nonzero on error.
  *
  * delete() deletes the indexed element.
  *     Returns 0 on success, nonzero on error.
  * insert() inserts the given element at the given index.
+ *     If elem is NULL, initializes element to zero.
  *
  * delete_range() deletes n elements from the given index onwards.
  * insert_range() inserts n elements into the given index.
+ *     If elems is NULL, initializes range to zero.
  */
 void *ndl_vector_get(ndl_vector *vector, uint64_t index);
 

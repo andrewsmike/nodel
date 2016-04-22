@@ -136,7 +136,10 @@ void *ndl_vector_push(ndl_vector *vector, void *elem) {
 
     void *pos = (void *) (vector->data + ((vector->elem_count - 1) * vector->elem_size));
 
-    memcpy(pos, elem, vector->elem_size);
+    if (elem != NULL)
+        memcpy(pos, elem, (size_t) vector->elem_size);
+    else
+        memset(pos, 0, (size_t) vector->elem_size);
 
     return pos;
 }
@@ -177,7 +180,10 @@ void *ndl_vector_insert(ndl_vector *vector, uint64_t index, void *elem) {
 
     memmove(dst, src, (size_t) (vector->elem_count - index - 1));
 
-    memcpy(src, elem, (size_t) vector->elem_size);
+    if (elem != NULL)
+        memcpy(src, elem, (size_t) vector->elem_size);
+    else
+        memset(src, 0, (size_t) vector->elem_size);
 
     return (void *) (vector->data + (index * vector->elem_size));
 }
@@ -211,7 +217,10 @@ void *ndl_vector_insert_range(ndl_vector *vector, uint64_t index, uint64_t len, 
 
     memmove(dst, src, (size_t) (vector->elem_count - index - len));
 
-    memcpy(src, elems, (size_t) (len * vector->elem_size));
+    if (elems != NULL)
+        memcpy(src, elems, (size_t) (len * vector->elem_size));
+    else
+        memset(src, 0, (size_t) (len * vector->elem_size));
 
     return (void *) (vector->data + (index * vector->elem_size));
 }
