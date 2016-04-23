@@ -79,6 +79,8 @@ static inline void ndl_vector_shrink(ndl_vector *vector, int64_t delta) {
         return;
 
     uint64_t ncap = (elem_cap >> 2);
+    while (ncap > ((elem_cap + (uint64_t) (-delta)) << 2))
+        ncap = ncap >> 1;
 
     void *ndata = realloc(vector->data, (size_t) ncap);
     if (ndata == NULL)
@@ -98,7 +100,9 @@ static inline int ndl_vector_grow(ndl_vector *vector, int64_t delta) {
     if (elem_count + (uint64_t) delta <= elem_cap)
         return 0;
 
-    uint64_t ncap = max((elem_cap << 2), 4);
+    uint64_t ncap = max((elem_cap << 1), 4);
+    while (ncap < (elem_cap + (uint64_t) delta))
+        ncap = ncap << 1;
 
     void *ndata = realloc(vector->data, (size_t) (ncap * vector->elem_size));
     if (ndata == NULL)
@@ -196,7 +200,7 @@ int ndl_vector_delete_range(ndl_vector *vector, uint64_t index, uint64_t len) {
     void *dst = (void *) (vector->data + (index * vector->elem_size));
     void *src = (void *) (vector->data + ((index + len) * vector->elem_size));
 
-    memmove(dst, src, (size_t) (vector->elem_count - index - len));
+    memmove(dst, src, (size_t) ((vector->elem_count - index - len) * vector->elem_size));
 
     ndl_vector_delta(vector, - (int64_t) len);
 
@@ -215,7 +219,7 @@ void *ndl_vector_insert_range(ndl_vector *vector, uint64_t index, uint64_t len, 
     void *dst = (void *) (vector->data + ((index + len) * vector->elem_size));
     void *src = (void *) (vector->data + (index * vector->elem_size));
 
-    memmove(dst, src, (size_t) (vector->elem_count - index - len));
+    memmove(dst, src, (size_t) ((vector->elem_count - index - len) * vector->elem_size));
 
     if (elems != NULL)
         memcpy(src, elems, (size_t) (len * vector->elem_size));
