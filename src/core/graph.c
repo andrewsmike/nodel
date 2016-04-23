@@ -824,7 +824,7 @@ static inline int ndl_graph_dcopy_fix(ndl_node_pool *to, ndl_node_pool *from,
      */
 
     ndl_ref *new = ndl_rhashtable_get(mapping, &node);
-    if (to == NULL)
+    if (new == NULL)
         return -1;
 
     ndl_value gc = ndl_node_pool_get(to, *new, NDL_SYM("\0gcsweep"));
@@ -850,7 +850,8 @@ static inline int ndl_graph_dcopy_fix(ndl_node_pool *to, ndl_node_pool *from,
             ndl_ref *new_ref = ndl_rhashtable_get(mapping, &old_ref);
             if (new_ref == NULL)
                 key = NDL_NULL_SYM;
-            key = NDL_BACKREF(*new_ref);
+            else
+                key = NDL_BACKREF(*new_ref);
 
         } else if ((val.type == EVAL_REF) && (val.ref != NDL_NULL_REF)) {
 
@@ -911,7 +912,7 @@ int ndl_graph_dcopy(ndl_graph *to, ndl_graph *from, ndl_ref *roots) {
         }
 
         int err = ndl_graph_dcopy_fix((ndl_node_pool *) to->pool, (ndl_node_pool *) from->pool,
-                                      *new, mapping);
+                                      *base, mapping);
         if (err != 0) {
             ndl_rhashtable_kill(mapping);
             return -1;
