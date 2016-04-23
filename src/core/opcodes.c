@@ -367,7 +367,7 @@ BEGINOP(branch) {
 
     ndl_value next = ndl_graph_get(graph, pc, branch);
     if (next.type == EVAL_NONE) {
-        next = ndl_graph_get(graph, pc, DS("instpntr"));
+        next = ndl_graph_get(graph, pc, DS("next    "));
     }
     ASSERTNOTNONE(next);
 
