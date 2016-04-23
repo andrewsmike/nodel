@@ -220,5 +220,9 @@ int main(int argc, const char *argv[]) {
         exit(EXIT_FAILURE);
     }
 
+    fclose(in);
+    if (out != stdout)
+        fclose(out);
+
     return 0;
 }
