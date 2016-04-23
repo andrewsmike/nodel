@@ -78,7 +78,7 @@ static int ndl_asm_parse_init(ndl_asm_result *res) {
 
     int err = ndl_graph_set(res->graph, root, NDL_SYM("curr    "), NDL_VALUE(EVAL_REF, ref=head));
     if (err != 0)
-        PARSEFAIL("Failed to store current instruction referenc: internal error.\n");
+        PARSEFAIL("Failed to store current instruction reference: internal error.\n");
 
     res->root = root;
     res->label_table = labels;
