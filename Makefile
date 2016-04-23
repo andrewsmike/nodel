@@ -74,6 +74,6 @@ all: ndlrun main ndlasm ndltest ndldump
 # Clean repo.
 clean:
 	rm -f $(OBJ_PATHS) $(TEST_OBJ_PATHS) \
-	ndlrun ndlasm main ndltest $(SRC)/nodelrun.o $(SRC)/nodeldump.o $(SRC)/nodelasm.o $(SRC)/main.o $(SRC)/test.o
+	ndlrun ndldump ndlasm main ndltest $(SRC)/nodelrun.o $(SRC)/nodeldump.o $(SRC)/nodelasm.o $(SRC)/main.o $(SRC)/test.o
 
 .PHONY: all_proxy all clean
