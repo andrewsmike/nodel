@@ -1,4 +1,4 @@
-/** nodel/src/nodelc.c: Toy CLI for assembling nodel program graphs. */
+/** nodel/src/nodelasm.c: Toy utility for assembling nodel program graphs. */
 
 #include <stdio.h>
 #include <stdlib.h>

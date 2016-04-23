@@ -1,4 +1,4 @@
-/** nodel/src/nodel.c: Toy CLI for nodel VM. */
+/** nodel/src/nodelrun.c: Toy utility for running nodel graphs. */
 
 #include <stdio.h>
 #include <stdlib.h>

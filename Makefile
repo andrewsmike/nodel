@@ -49,11 +49,15 @@ CCLIBS=$(addprefix -l, $(LIBS))
 	$(CC) $(CCFLAGS) -c $< -o $@
 
 # Rule for compiling main executable.
-ndlrun: $(OBJ_PATHS) $(SRC)/nodel.o
+ndlrun: $(OBJ_PATHS) $(SRC)/nodelrun.o
 	$(CC) $(CCDEBUG) $(CCLIBS) $^ -o $@
 
 # Rule for compiling main executable.
 ndlasm: $(OBJ_PATHS) $(SRC)/nodelasm.o
+	$(CC) $(CCDEBUG) $(CCLIBS) $^ -o $@
+
+# Rule for compiling main executable.
+ndldump: $(OBJ_PATHS) $(SRC)/nodeldump.o
 	$(CC) $(CCDEBUG) $(CCLIBS) $^ -o $@
 
 # Rule for compiling main executable.
@@ -64,15 +68,12 @@ main: $(OBJ_PATHS) $(SRC)/main.o
 ndltest: $(OBJ_PATHS) $(TEST_OBJ_PATHS) $(SRC)/test.o
 	$(CC) $(CCDEBUG) $(CCLIBS) $^ -o $@
 
-run: ndlrun
-	./ndlrun
-
 # Main rule.
-all: ndlrun main ndlasm ndltest
+all: ndlrun main ndlasm ndltest ndldump
 
 # Clean repo.
 clean:
 	rm -f $(OBJ_PATHS) $(TEST_OBJ_PATHS) \
-	ndlrun ndlasm main ndltest $(SRC)/nodel.o $(SRC)/nodelasm.o $(SRC)/main.o $(SRC)/test.o
+	ndlrun ndlasm main ndltest $(SRC)/nodelrun.o $(SRC)/nodeldump.o $(SRC)/nodelasm.o $(SRC)/main.o $(SRC)/test.o
 
 .PHONY: all_proxy all clean
