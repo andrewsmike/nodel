@@ -36,6 +36,8 @@ static ndl_vector *assemble_load(FILE *in) {
                 fprintf(stderr, "Failed to load code vector.\n");
                 return NULL;
             }
+
+            sum += read;
         }
 
         if (ferror(in)) {
@@ -43,6 +45,13 @@ static ndl_vector *assemble_load(FILE *in) {
             fprintf(stderr, "Failed to read input file: %s.\n", strerror(errno));
             return NULL;
         }
+    }
+
+    void *ret = ndl_vector_push(code, NULL);
+    if (ret == NULL) {
+        ndl_vector_kill(code);
+        fprintf(stderr, "Failed to append NULL terminator to file.");
+        return NULL;
     }
 
     return code;

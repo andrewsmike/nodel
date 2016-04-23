@@ -138,7 +138,7 @@ static void ndl_graph_clean_mark(ndl_graph *graph, ndl_ref root, int64_t sweep) 
     if (gcsweep.type != EVAL_INT)
         return;
 
-    if (gcsweep.num < 0 && (sweep >= 0))
+    if (gcsweep.num == -1 && (sweep >= 0))
         return;
 
     sweep = (sweep < 0)? -sweep : sweep; 
@@ -251,10 +251,7 @@ void ndl_graph_clean(ndl_graph *graph) {
         ndl_value gcsweep = ndl_node_pool_get((ndl_node_pool *) graph->pool,
                                               (ndl_ref) i, NDL_SYM("\0gcsweep"));
 
-        if (gcsweep.type != EVAL_INT)
-            continue;
-
-        if ((gcsweep.num == -1) || (gcsweep.num >= sweep))
+        if ((gcsweep.type == EVAL_INT) && ((gcsweep.num == -1) || (gcsweep.num >= sweep)))
             continue;
 
         ndl_graph_clean_remove(graph, (ndl_ref) i);
@@ -537,6 +534,7 @@ int64_t ndl_graph_to_mem(ndl_graph *graph, uint64_t maxlen, void *mem) {
 
     return (int64_t) curr;
 }
+
 static inline int64_t ndl_graph_from_mem_kv(ndl_graph *graph, ndl_ref node, uint64_t maxlen, char *from) {
 
     uint64_t curr = 0;
@@ -624,6 +622,7 @@ ndl_graph *ndl_graph_from_mem(uint64_t maxlen, void *mem) {
 
     return graph;
 }
+
 static inline ndl_ref ndl_graph_copy_node(ndl_node_pool *to, ndl_node_pool *from, ndl_ref node) {
 
     ndl_ref new = ndl_node_pool_alloc(to);
@@ -635,6 +634,11 @@ static inline ndl_ref ndl_graph_copy_node(ndl_node_pool *to, ndl_node_pool *from
 
         ndl_sym key = ndl_node_pool_kv_key(from, node, kvpair);
         ndl_value val = ndl_node_pool_kv_val(from, node, kvpair);
+        if (key == NDL_SYM("\0gcsweep")) {
+            if ((val.type == EVAL_INT) && (val.num == -1)) {
+                val.num = -2;
+            }
+        }
 
         int err = ndl_node_pool_set(to, new, key, val);
         if (err != 0) {
@@ -647,9 +651,9 @@ static inline ndl_ref ndl_graph_copy_node(ndl_node_pool *to, ndl_node_pool *from
 
     return new;
 }
-static inline int ndl_graph_copy_fix_node(ndl_node_pool *to, ndl_rhashtable *mapper, ndl_ref old) {
+static inline int ndl_graph_copy_fix_node(ndl_node_pool *to, ndl_rhashtable *mapping, ndl_ref old) {
 
-    ndl_ref *new = ndl_rhashtable_get(mapper, &old);
+    ndl_ref *new = ndl_rhashtable_get(mapping, &old);
     if (new == NULL)
         return -1;
 
@@ -665,7 +669,7 @@ static inline int ndl_graph_copy_fix_node(ndl_node_pool *to, ndl_rhashtable *map
         if (NDL_ISBACKREF(key)) {
 
             ndl_ref ref = NDL_DEBACKREF(key);
-            ndl_ref *nref = ndl_rhashtable_get(mapper, &ref);
+            ndl_ref *nref = ndl_rhashtable_get(mapping, &ref);
             if (nref == NULL)
                 return -1;
 
@@ -682,14 +686,14 @@ static inline int ndl_graph_copy_fix_node(ndl_node_pool *to, ndl_rhashtable *map
             if (val.type != EVAL_INT)
                 return -1;
 
-            if (val.num != -1) {
-
+            if (val.num >= 0)
                 val.num = 0;
+            else
+                val.num = -1;
 
-                int err =  ndl_node_pool_set(to, *new, key, val);
-                if (err != 0)
-                    return -1;
-            }
+            int err =  ndl_node_pool_set(to, *new, key, val);
+            if (err != 0)
+                return -1;
         }
 
         kvpair = ndl_node_pool_kv_next(to, *new, kvpair);
@@ -706,17 +710,17 @@ int ndl_graph_copy(ndl_graph *to, ndl_graph *from, ndl_ref *refs) {
      * Update refs
      * Return
      */
-    ndl_rhashtable *mapper = ndl_rhashtable_init(sizeof(ndl_ref), sizeof(ndl_ref), 16);
-    if (mapper == NULL)
+    ndl_rhashtable *mapping = ndl_rhashtable_init(sizeof(ndl_ref), sizeof(ndl_ref), 16);
+    if (mapping == NULL)
         return -1;
 
     ndl_ref old = ndl_node_pool_head((ndl_node_pool *) from->pool);
     while (old != NDL_NULL_REF) {
 
         ndl_ref new = ndl_graph_copy_node((ndl_node_pool *) to->pool, (ndl_node_pool *) from->pool, old);
-        void *mapping = ndl_rhashtable_put(mapper, &old, &new);
+        void *mapping = ndl_rhashtable_put(mapping, &old, &new);
         if ((new == NDL_NULL_REF) || (mapping == NULL)) {
-            ndl_rhashtable_kill(mapper);
+            ndl_rhashtable_kill(mapping);
             return -1;
         }
 
@@ -726,9 +730,9 @@ int ndl_graph_copy(ndl_graph *to, ndl_graph *from, ndl_ref *refs) {
     old = ndl_node_pool_head((ndl_node_pool *) from->pool);
     while (old != NDL_NULL_REF) {
 
-        int err = ndl_graph_copy_fix_node((ndl_node_pool *) to->pool, mapper, old);
+        int err = ndl_graph_copy_fix_node((ndl_node_pool *) to->pool, mapping, old);
         if (err != 0) {
-            ndl_rhashtable_kill(mapper);
+            ndl_rhashtable_kill(mapping);
             return -1;
         }
 
@@ -737,27 +741,195 @@ int ndl_graph_copy(ndl_graph *to, ndl_graph *from, ndl_ref *refs) {
 
     if (refs != NULL) {
 
-        while (*refs != NDL_NULL_REF) {
+        for (; *refs != NDL_NULL_REF; refs++) {
 
-            ndl_ref *res = ndl_rhashtable_get(mapper, refs);
+            ndl_ref *res = ndl_rhashtable_get(mapping, refs);
             if (res == NULL) {
-                ndl_rhashtable_kill(mapper);
+                ndl_rhashtable_kill(mapping);
                 return -1;
             }
 
             *refs = *res;
-
-            refs++;
         }
     }
 
-    ndl_rhashtable_kill(mapper);
+    ndl_rhashtable_kill(mapping);
+
+    return 0;
+}
+
+static inline int ndl_graph_dcopy_add(ndl_node_pool *to, ndl_node_pool *from,
+                                      ndl_ref node, ndl_rhashtable *mapping) {
+
+    /* If in mapping, return
+     * create a new node,
+     * set gc=-3
+     * add mapping,
+     * for each kv pair:
+     *   if ref, recurse
+     * return
+     */
+    void *ret = ndl_rhashtable_get(mapping, &node);
+    if (ret != NULL)
+        return 0;
+
+    ndl_ref new = ndl_node_pool_alloc(to);
+    if (new == NDL_NULL_REF)
+        return -1;
+
+    ret = ndl_rhashtable_put(mapping, &node, &new);
+    if (ret == NULL) {
+        ndl_node_pool_free(to, new);
+        return -1;
+    }
+
+    int err = ndl_node_pool_set(to, new, NDL_SYM("\0gcsweep"), NDL_VALUE(EVAL_INT, num=-3));
+    if (err != 0) {
+        ndl_node_pool_free(to, new);
+        return -1;
+    }
+
+    void *curr = ndl_node_pool_kv_head(from, node);
+    while (curr != NULL) {
+
+        ndl_value val = ndl_node_pool_kv_val(from, node, curr);
+
+        if ((val.type == EVAL_REF) && (val.ref != NDL_NULL_REF)) {
+
+            err = ndl_graph_dcopy_add(to, from, val.ref, mapping);
+            if (err != 0) {
+                ndl_node_pool_free(to, new);
+                return -1;
+            }
+        }
+
+        curr = ndl_node_pool_kv_next(from, node, curr);
+    }
+
+    return 0;
+}
+
+static inline int ndl_graph_dcopy_fix(ndl_node_pool *to, ndl_node_pool *from,
+                                      ndl_ref node, ndl_rhashtable *mapping) {
+
+    /*  
+     * if GC != -3, return,
+     * set GC to 0
+     * for each (origin) kv pair:
+     *    if GC, ignore
+     *    if backref, if remappable, remap, copy
+     *    if ref, remap, recurse
+     *    else, copy
+     * return
+     */
+
+    ndl_ref *new = ndl_rhashtable_get(mapping, &node);
+    if (to == NULL)
+        return -1;
+
+    ndl_value gc = ndl_node_pool_get(to, *new, NDL_SYM("\0gcsweep"));
+    if ((gc.type != EVAL_INT) || (gc.num != -3))
+        return 0;
+
+    gc.num = 0;
+    int err = ndl_node_pool_set(to, *new, NDL_SYM("\0gcsweep"), gc);
+    if (err != 0)
+        return -1;
+
+    void *curr = ndl_node_pool_kv_head(from, node);
+    while (curr != NULL) {
+
+        ndl_sym key = ndl_node_pool_kv_key(from, node, curr);
+        ndl_value val = ndl_node_pool_kv_val(from, node, curr);
+
+        if (key == NDL_SYM("\0gcsweep")) {
+            key = NDL_NULL_SYM;
+        } else if (NDL_ISBACKREF(key)) {
+
+            ndl_ref old_ref = NDL_DEBACKREF(key);
+            ndl_ref *new_ref = ndl_rhashtable_get(mapping, &old_ref);
+            if (new_ref == NULL)
+                key = NDL_NULL_SYM;
+            key = NDL_BACKREF(*new_ref);
+
+        } else if ((val.type == EVAL_REF) && (val.ref != NDL_NULL_REF)) {
+
+            err = ndl_graph_dcopy_fix(to, from, val.ref, mapping);
+            if (err != 0)
+                return -1;
+
+            ndl_ref *new_ref = ndl_rhashtable_get(mapping, &val.ref);
+            if (new_ref == NULL)
+                return -1;
+
+            val.ref = *new_ref;
+        }
+
+        if (key != NDL_NULL_SYM) {
+            err = ndl_node_pool_set(to, *new, key, val);
+            if (err != 0)
+                return -1;
+        }
+
+        curr = ndl_node_pool_kv_next(from, node, curr);
+    }
 
     return 0;
 }
 
 int ndl_graph_dcopy(ndl_graph *to, ndl_graph *from, ndl_ref *roots) {
-    return -1;
+
+    /* Create mapping table,
+     * for each root:
+     *    recursively add root and reachable to table with bad refs and bad GC
+     * for each root:
+     *    recursively correct references and GC
+     *    mark root
+     *    map root arg
+     * return
+     */
+    ndl_rhashtable *mapping = ndl_rhashtable_init(sizeof(ndl_ref), sizeof(ndl_ref), 16);
+    if (mapping == NULL)
+        return -1;
+
+    ndl_ref *base;
+    for (base = roots; *base != NDL_NULL_REF; base++) {
+
+        int err = ndl_graph_dcopy_add((ndl_node_pool *) to->pool, (ndl_node_pool *) from->pool, *base, mapping);
+        if (err != 0) {
+            ndl_rhashtable_kill(mapping);
+            return -1;
+        }
+    }
+
+    for (base = roots; *base != NDL_NULL_REF; base++) {
+
+        ndl_ref *new = ndl_rhashtable_get(mapping, base);
+        if (new == NULL) {
+            ndl_rhashtable_kill(mapping);
+            return -1;
+        }
+
+        int err = ndl_graph_dcopy_fix((ndl_node_pool *) to->pool, (ndl_node_pool *) from->pool,
+                                      *new, mapping);
+        if (err != 0) {
+            ndl_rhashtable_kill(mapping);
+            return -1;
+        }
+
+        err = ndl_node_pool_set((ndl_node_pool *) to->pool, *new,
+                                NDL_SYM("\0gcsweep"), NDL_VALUE(EVAL_INT, num=-1));
+        if (err != 0) {
+            ndl_rhashtable_kill(mapping);
+            return -1;
+        }
+
+        *base = *new;
+    }
+
+    ndl_rhashtable_kill(mapping);
+
+    return 0;
 }
 
 void ndl_graph_print(ndl_graph *graph) {
