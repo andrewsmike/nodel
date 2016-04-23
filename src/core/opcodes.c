@@ -142,9 +142,10 @@ BEGINOP(new) {
 
 BEGINOP(copy) {
     INITRES;
-    LOADSYMAB;
 
-    NTLOAD(local, val, syma.sym);
+    NTLOADVAL(pc, local, val, DS("syma    "));
+    LOAD(pc, symb, DS("symb    "), EVAL_SYM);
+
     STORE(local, val, symb.sym);
 
     ADVANCE;
