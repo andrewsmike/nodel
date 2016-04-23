@@ -102,7 +102,7 @@ uint64_t ndl_graph_backrefs(ndl_graph *graph, ndl_ref to, ndl_ref from);
  * mem_est() returns a guess upper bound on memory requirements.
  *     May be too small. Double size until success.
  * to_mem() saves a graph into a given region of memory.
- *     Returns number of bytes used. -1 on error, including overflow.
+ *     Returns number of bytes used. -1 on insufficient memory.
  * from_mem() retrieves a graph from a block of memory.
  *     Returns NULL on error.
  */
