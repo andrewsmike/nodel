@@ -70,21 +70,17 @@ static inline uint64_t ndl_hashtable_hash(ndl_hashtable *table, void *key) {
     uint64_t size = table->key_size;
 
     uint64_t sum = 0;
+    uint64_t size_64 = size >> 3;
+    uint64_t size_32 = size >> 2;
+    uint64_t extra_word = size & 0x04;
 
     uint64_t i;
-    for (i = 0; i < (size + 7)/8; i++) {
-        uint64_t curr = ((uint64_t *) key)[i];
-
-        int64_t mask = (int64_t) 0xFF00000000000000;
-        int32_t bytes = 7 - (int32_t) (((uint32_t) size) - (((uint32_t) i) << 3));
-        if (bytes >= 0) {
-            mask = mask >> bytes;
-            mask = ~mask;
-            curr &= (uint64_t) mask;
-        }
-
-        sum += curr;
+    for (i = 0; i < size_64; i++) {
+        sum += ((uint64_t *) key)[i];
     }
+
+    if (extra_word)
+        sum += ((uint32_t *) key)[size_32 - 1];
 
     return (sum + (sum << 1)) % table->capacity;
 }

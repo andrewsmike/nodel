@@ -17,10 +17,7 @@
  * a key, you must search until either key is found, a
  * bucket with marker=0 is found, or you loop the entire
  * list.
- *
- * TODO: Rearrange such that markers, keys, and vals are
- * groups by type, not by index. Will simplify math and
- * make cleaner. May be less cache friendly at low loads.
+ * Keys must be %sizeof(int32_t).
  */
 typedef struct ndl_hashtable_bucket_s {
 

@@ -13,6 +13,7 @@
  * Automatically grows and shrinks to larger or smaller hashtables
  * based on usage.
  *
+ * Keys must be %sizeof(int32_t).
  */
 
 /* Stores the minimum hashtable size, pointer to current hashtable.
