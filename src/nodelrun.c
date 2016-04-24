@@ -76,7 +76,12 @@ int main(int argc, char *argv[]) {
     if (buff == NULL)
         FAIL("Failed to allocate file buffer.\n");
 
-    FILE *in = fopen(argv[1], "r");
+    FILE *in;
+
+    if (strcmp(argv[1], "-"))
+        in = fopen(argv[1], "r");
+    else
+        in = stdin;
     if (in == NULL)
         FAIL("Failed to open file.\n");
 
@@ -88,7 +93,8 @@ int main(int argc, char *argv[]) {
         if (used > 0) curr += used;
     }
 
-    fclose(in);
+    if (in != stdin)
+        fclose(in);
 
     ndl_graph *graph = ndl_graph_from_mem(curr, buff);
     if (graph == NULL)

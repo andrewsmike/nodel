@@ -95,7 +95,10 @@ int main(int argc, const char *argv[]) {
 
     FILE *in;
 
-    in = fopen(argv[1], "rb");
+    if (strcmp(argv[1], "-"))
+        in = fopen(argv[1], "rb");
+    else
+        in = stdin;
     if (in == NULL) {
         fprintf(stderr, "Failed to open source file '%s': %s.\n", argv[1], strerror(errno));
         exit(EXIT_FAILURE);
@@ -107,7 +110,8 @@ int main(int argc, const char *argv[]) {
     if (err != 0)
         exit(EXIT_FAILURE);
 
-    fclose(in);
+    if (in != stdin)
+        fclose(in);
 
     return 0;
 }
