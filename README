@@ -6,20 +6,34 @@ You can find details about the architecture in ARCH.
 Nodel currently has an assembler and interpreter. It has a managed runtime in the works,
 and is moving towards a higher language and a visual interface.
 
+
 Building
 --------
 Important `make` directives:
 - all: Build test application.
 - clean: Clean all files.
 
+
 Usage
 -----
 Nodel currently produces four executables.
-./ndltest "ndl.prefix"              # Runs all available test with the given prefix.
+./ndltest ndl.prefix                # Run all available test with the given prefix.
 ./ndlasm source.asm [-o output.ndl] # Assembles an assembly program into a program graph.
 ./ndldump output.ndl                # Dumps a description of a program graph.
 ./ndlrun output.ndl [arg1...]       # Runs the program graph with the given arguments.
 ./main                              # For testing purposes. Will be removed eventually.
+All utilities accept the '-' character to mean standard in, and use standard out
+by default. For example, to run a single script, you may type
+
+~/src/nodel $ ./ndlasm - | ./ndlrun - 3.14159
+print arg1
+print 3.14159
+exit
+^D
+[000@004]: [Float:3.14159].
+[001@004]: [Float:3.14159].
+Exiting.
+
 
 Status
 ------
@@ -29,6 +43,7 @@ assembler. Nodel was not made to be inefficient, but with the exception of a few
 nodel runs with reasonable efficiency. The runtime is partially complete, and requires more
 testing/debugging/refactoring/feature adding before being ready for use. Nodel is now
 able to run programs generated from a basic assembly language.
+
 
 Future work
 -----------
@@ -51,7 +66,6 @@ Refactoring/improvements:
 - Improve testing system and more tests.
 
 Features:
-- Toy interpreter command
 - Features for embedding into games (limits on process count, frequency, nodecount, etc)
 - program graph <---> assembly tools
 - BASIC-inspired datastructure oriented high level language compiler (and utilities)
@@ -59,6 +73,7 @@ Features:
 - Assembly, code, graph differ for nice effects?
 - NCURSES test visualization interface?
 - Actual GUI? (What to use, oh god... xlib? gtk? pygame? cat > /dev/printer?)
+
 
 Goals
 -----
