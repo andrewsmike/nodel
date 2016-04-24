@@ -1,63 +1,68 @@
 Nodel
 =====
 
-Nodel is a toy language aimed at visually representing datastructures and algorithms.
+Nodel is a toy environment aimed at visually representing datastructures and algorithms.
 You can find details about the architecture in ARCH.
+Nodel currently has an assembler and interpreter. It has a managed runtime in the works,
+and is moving towards a higher language and a visual interface.
 
 Building
 --------
-make directives:
+Important `make` directives:
 - all: Build test application.
 - clean: Clean all files.
 
 Usage
 -----
-Nodel currently produces two executables.
-./test is for testing various modules of code, and has many special purpose arguments.
-./nodel is for loading a serialized graph from a file and executing the included program, with args.
-Type ./nodel for help.
+Nodel currently produces four executables.
+./ndltest "ndl.prefix"              # Runs all available test with the given prefix.
+./ndlasm source.asm [-o output.ndl] # Assembles an assembly program into a program graph.
+./ndldump output.ndl                # Dumps a description of a program graph.
+./ndlrun output.ndl [arg1...]       # Runs the program graph with the given arguments.
+./main                              # For testing purposes. Will be removed eventually.
 
 Status
 ------
 Nodel currently has a working node graph with backreferences and garbage collection.
 It includes a frequency and event based runtime system, along with an interpreter and
-assembler. Nodel was not made to be inefficient, but with the exception of nodepool
-(replacement in progress), nodel runs with reasonable efficiency. (Nodepool shall be
-obliterated with the fury of a thousand daemons.) The runtime is partially complete,
-and requires more testing/debugging/refactoring/feature adding before being ready for
-use. Nodel is now able to run programs generated from a basic assembly language.
+assembler. Nodel was not made to be inefficient, but with the exception of a few pieces,
+nodel runs with reasonable efficiency. The runtime is partially complete, and requires more
+testing/debugging/refactoring/feature adding before being ready for use. Nodel is now
+able to run programs generated from a basic assembly language.
 
 Future work
 -----------
+Refactoring/improvements:
 - Obliviate nodepool (replace with multiple slab hashtable pools for nodes)
 - Continue work on the runtime systems
 - - Break into multiple files and refactor
 - - Better tools for debugging specific processes (process error message, error state)
 - - Add occasional GC call somewhere
 - - Add excall hook and registry system
+- - - Storage management excalls (dcopy)?
 - - - Process management excalls?
 - - Debug and test like hell
 - - Heavy performance analysis (how slow are waittables?)
 - - Runtime serialization (possibly just encode into graph, save graph and root)
-- Graph_dcopy functionality
-- - Toy assembler command
-- - Storage excalls (dcopy) (excalls)
-- Toy interpreter command
-- Assembly differ for visualizations
 - Recursive resizable hashtable for efficient node ID -> *hashtable lookup.
 - - Or fancy lazy copy/growth hashtable
-- Refactor codebase with consistent style (naming, whitespace, struct members, etc)
-- Features for embedding into games (limits on process count, frequency, nodecount, etc)
 - Further performance analysis
+- Refactor codebase with consistent style (naming, whitespace, struct members, etc)
 - Improve testing system and more tests.
-- Move heap to vector implementation
+
+Features:
+- Toy interpreter command
+- Features for embedding into games (limits on process count, frequency, nodecount, etc)
+- program graph <---> assembly tools
 - BASIC-inspired datastructure oriented high level language compiler (and utilities)
-- graph <---> assembly tools
-- NCURSES test visualization interface.
-- Actual GUI (What to use, oh god... xlib? gtk? pygame? cat > /dev/printer?)
+- Frontent-agnostic UI datastructure, generator, event handling, etc?
+- Assembly, code, graph differ for nice effects?
+- NCURSES test visualization interface?
+- Actual GUI? (What to use, oh god... xlib? gtk? pygame? cat > /dev/printer?)
 
 Goals
 -----
 The goal of this project is to build a virtual environment where users are able to manipulate
 running processes and their datastructures in realtime. The idea came from a discussion with
-friends about how programming systems embedded into sandbox games should work.
+friends about how programming systems embedded into sandbox games should work. I cannot imagine
+any goal other than entertainment.
