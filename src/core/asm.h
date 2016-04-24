@@ -17,7 +17,7 @@
  * Symbols may not be more than eight chars long.
  * You may 'attach' extra key/value pairs to an instruction by
  * adding a '|' to the end of the line, followed by a series
- * of comma separated key=value pairs. These may overwrite
+ * of space separated key=value pairs. These may overwrite
  * default opcode, syma, symb, next options.
  *
  * EXAMPLE
