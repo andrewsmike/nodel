@@ -61,7 +61,5 @@ char *ndl_test_graph_salloc(void);
 char *ndl_test_graph_gc(void);
 char *ndl_test_graph_kv_it(void);
 char *ndl_test_graph_backref(void);
-char *ndl_test_graph_mem(void);
-char *ndl_test_graph_copy(void);
 
 #endif /* NODEL_TEST_H */

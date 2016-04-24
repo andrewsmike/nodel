@@ -205,19 +205,15 @@ char *ndl_test_graph_backref(void) {
         return "Failed to add references";
     }
 
+    uint64_t count = ndl_graph_backrefs(graph, aa, ac);
+    if (count != 2) {
+        printf("Got %ld.\n", count);
+        ndl_graph_print(graph);
+        ndl_graph_kill(graph);
+        return "Got wrong number of backrefs";
+    }
+
     ndl_graph_kill(graph);
 
     return NULL;
-}
-
-char *ndl_test_graph_mem(void) {
-
-    printf("TODO: Graph serialization tests.\n");
-    return "Test not yet written";
-}
-
-char *ndl_test_graph_copy(void) {
-
-    printf("TODO: Graph copy tests.\n");
-    return "Test not yet written";
 }
