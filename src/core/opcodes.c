@@ -153,10 +153,13 @@ BEGINOP(copy) {
 
 BEGINOP(load) {
     INITRES;
-    LOADSYMABC;
 
-    LOADREF(local, sec, syma.sym);
+    LOADVAL(pc, local, sec, DS("syma    "), EVAL_REF);
+    LOAD(pc, symb, DS("symb    "), EVAL_SYM);
+    LOAD(pc, symc, DS("symc    "), EVAL_SYM);
+
     NTLOAD(sec.ref, val, symb.sym);
+
     STORE(local, val, symc.sym);
 
     ADVANCE;
@@ -164,10 +167,11 @@ BEGINOP(load) {
 
 BEGINOP(save) {
     INITRES;
-    LOADSYMABC;
 
-    NTLOAD(local, val, syma.sym);
-    LOADREF(local, sec, symc.sym);
+    NTLOADVAL(pc, local, val, DS("syma    "));
+    LOAD(pc, symb, DS("symb    "), EVAL_SYM);
+    LOADVAL(pc, local, sec, DS("symc    "), EVAL_REF);
+
     STORE(sec.ref, val, symb.sym);
 
     ADVANCE;
@@ -414,24 +418,23 @@ BEGINOP(exit) {
 
 BEGINOP(sleep) {
     INITRES;
-    LOADSYMA;
 
-    LOAD(local, time, syma.sym, EVAL_INT);
+    LOADVAL(pc, local, val, DS("syma    "), EVAL_INT);
 
     res.action = EACTION_SLEEP;
-    res.actval = time;
+    res.actval = val;
 
     ADVANCE;
 }
 
 BEGINOP(wait) {
     INITRES;
-    LOADSYMA;
 
-    LOADREF(local, node, syma.sym);
+    LOADVAL(pc, local, val, DS("syma    "), EVAL_REF);
+    ASSERTREF(val);
 
     res.action = EACTION_WAIT;
-    res.actval = node;
+    res.actval = val;
 
     ADVANCE;
 }
@@ -448,9 +451,8 @@ BEGINOP(excall) {
 
 BEGINOP(print) {
     INITRES;
-    LOADSYMA;
 
-    NTLOAD(local, val, syma.sym);
+    NTLOADVAL(pc, local, val, DS("syma    "));
 
     char buff[16];
     buff[15] = '\0';
