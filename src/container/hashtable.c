@@ -144,12 +144,18 @@ void *ndl_hashtable_put(ndl_hashtable *table, void *key, void *value) {
             curr->marker = 1;
             table->size++;
             memcpy(currkey, key, table->key_size);
-            return memcpy(currval, value, table->val_size);
+            if (value == NULL)
+                return currval;
+            else
+                return memcpy(currval, value, table->val_size);
         }
 
         if (curr->marker == 1) {
             if (!ndl_hashtable_keycmp(table, curr, key)) {
-                return memcpy(currval, value, table->val_size);
+                if (value == NULL)
+                    return currval;
+                else
+                    return memcpy(currval, value, table->val_size);
             }
         }
 

@@ -62,6 +62,8 @@ uint64_t       ndl_hashtable_msize(uint64_t key_size, uint64_t val_size, uint64_
  * get() takes a key and returns a pointer to the associated value, or NULL.
  * put() takes a key/value pair and inserts or overrides the key with the given value.
  *     This returns a pointer to the value, or NULL if capacity issues.
+ *     If value is NULL, does not initialize value.
+ *     If value is NULL, and replacing, does not memset.
  * del() deletes a key from the hashtable.
  *     Returns 0 for success, and nonzero if the key is not present.
  */
