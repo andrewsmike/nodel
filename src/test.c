@@ -97,6 +97,8 @@ static inline void ndl_test_init(void) {
     /* Core. */
     ndl_test_register("ndl.node.value.print", &ndl_test_node_value_print);
 
+    ndl_test_register("ndl.asm.syntax", &ndl_test_asm_syntax);
+
     ndl_test_register("ndl.graph.alloc", &ndl_test_graph_alloc);
     ndl_test_register("ndl.graph.minit", &ndl_test_graph_minit);
     ndl_test_register("ndl.graph.salloc", &ndl_test_graph_salloc);

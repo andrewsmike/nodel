@@ -6,6 +6,5 @@ ndlasm
 ndlc
 
 ndltest
-main
 
 gmon.*

@@ -55,6 +55,8 @@ char *ndl_test_heap_meta(void);
 /* Core */
 char *ndl_test_node_value_print(void);
 
+char *ndl_test_asm_syntax(void);
+
 char *ndl_test_graph_alloc(void);
 char *ndl_test_graph_minit(void);
 char *ndl_test_graph_salloc(void);

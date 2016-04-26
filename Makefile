@@ -60,20 +60,16 @@ ndlasm: $(OBJ_PATHS) $(SRC)/nodelasm.o
 ndldump: $(OBJ_PATHS) $(SRC)/nodeldump.o
 	$(CC) $(CCDEBUG) $(CCLIBS) $^ -o $@
 
-# Rule for compiling main executable.
-main: $(OBJ_PATHS) $(SRC)/main.o
-	$(CC) $(CCDEBUG) $(CCLIBS) $^ -o $@
-
 # Rule for compiling testing executable.
 ndltest: $(OBJ_PATHS) $(TEST_OBJ_PATHS) $(SRC)/test.o
 	$(CC) $(CCDEBUG) $(CCLIBS) $^ -o $@
 
 # Main rule.
-all: ndlrun main ndlasm ndltest ndldump
+all: ndlrun ndlasm ndltest ndldump
 
 # Clean repo.
 clean:
 	rm -f $(OBJ_PATHS) $(TEST_OBJ_PATHS) \
-	ndlrun ndldump ndlasm main ndltest $(SRC)/nodelrun.o $(SRC)/nodeldump.o $(SRC)/nodelasm.o $(SRC)/main.o $(SRC)/test.o
+	ndlrun ndldump ndlasm ndltest $(SRC)/nodelrun.o $(SRC)/nodeldump.o $(SRC)/nodelasm.o $(SRC)/test.o
 
 .PHONY: all_proxy all clean
