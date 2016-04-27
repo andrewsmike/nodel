@@ -170,20 +170,35 @@ ndl_eval_func ndl_eval_opcode_lookup(ndl_sym opcode) {
     return *t;
 }
 
-ndl_sym *ndl_eval_opcodes_head(void) {
+void *ndl_eval_opcodes_head(void) {
 
     ndl_rhashtable *ops = ndl_eval_get_opcode_table();
     if (ops == NULL)
         return NULL;
 
-    return (ndl_sym *) ndl_rhashtable_keyhead(ops);
+    return ndl_rhashtable_pairs_head(ops);
 }
 
-ndl_sym *ndl_eval_opcodes_next(ndl_sym *last) {
+void *ndl_eval_opcodes_next(void *prev) {
 
     ndl_rhashtable *ops = ndl_eval_get_opcode_table();
     if (ops == NULL)
         return NULL;
 
-    return (ndl_sym *) ndl_rhashtable_keynext(ops, (void *) last);
+    return ndl_rhashtable_pairs_next(ops, prev);
 }
+
+ndl_sym ndl_eval_opcodes_get(void *curr) {
+
+    ndl_rhashtable *ops = ndl_eval_get_opcode_table();
+    if (ops == NULL)
+        return NDL_NULL_SYM;
+
+    ndl_sym *val = ndl_rhashtable_pairs_key(ops, curr);
+
+    if (val == NULL)
+        return NDL_NULL_SYM;
+
+    return *val;
+}
+

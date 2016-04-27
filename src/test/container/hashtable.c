@@ -47,16 +47,10 @@ char *ndl_test_hashtable_it(void) {
         return "Required wrong amount of memory";
     }
 
-    if (ndl_hashtable_keyhead(table) != NULL) {
+    if (ndl_hashtable_pairs_head(table) != NULL) {
         ndl_hashtable_print(table);
         ndl_hashtable_kill(table);
-        return "Empty table gives valid key iterator.";
-    }
-
-    if (ndl_hashtable_valhead(table) != NULL) {
-        ndl_hashtable_print(table);
-        ndl_hashtable_kill(table);
-        return "Empty table gives valid value iterator.";
+        return "Empty table gives valid iterator.";
     }
 
     void *data;
@@ -99,20 +93,21 @@ char *ndl_test_hashtable_it(void) {
         return "Got wrong value for 4";
     }
     
-    c = ndl_hashtable_keyhead(table);
+    c = ndl_hashtable_pairs_head(table);
     while (c != NULL) {
 
-        if (c == NULL) {
+        int *data = ndl_hashtable_pairs_key(table, c);
+        if (data == NULL) {
             ndl_hashtable_print(table);
             ndl_hashtable_kill(table);
             return "Failed to get element";
         }
-        if (*c != *(c + 1) - 3) {
+        if (*data != *(data + 1) - 3) {
             ndl_hashtable_print(table);
             ndl_hashtable_kill(table);
             return "Got wrong data";
         }
-        c = ndl_hashtable_keynext(table, c);
+        c = ndl_hashtable_pairs_next(table, c);
     }
 
     ndl_hashtable_kill(table);

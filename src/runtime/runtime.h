@@ -3,22 +3,19 @@
 
 #include "graph.h"
 
-/* Runtimes contain the data necessary to run a number of nodel
- * processes in a graph. They assign PIDs to each process, store
- * related data, and provide functions for manipulating these processes.
+/* Runtimes represent some number of processes acting on
+ * a graph. It indexes processes by a numeric identifier.
  *
- * Each process is assigned a frequency to run at.
- * To run, use the various run_*() functions to run each ready process and
- * wait for the next cycle.
+ * Processes have two primary forms of state:
+ * How the process is being executed (external), and
+ * whether the process is running, waiting, sleeping, or dead (internal).
  *
- * Suspended processes are not waiting or sleeping on any event. They are not running.
- * Waiting processes are waiting for a node to be modified.
- * Sleeping processes are waiting for some timeout to occur.
- * Running processes are running at some set frequency.
- * (If frequency is >10MHz, runs as fast as possible.)
- * Frequencies are specified in deciHertz for the moment.
- * Waiting/sleeping/suspended processes still have frequencies, and will
- * use them upon revival.
+ * Processes move between the internal states during the normal course
+ * of their execution. External actors may deactivate or reactivate processes
+ * as needed.
+ *
+ * See proc.h for more details.
+ *
  */
 
 typedef struct ndl_runtime_s ndl_runtime;

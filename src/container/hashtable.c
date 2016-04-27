@@ -30,14 +30,15 @@ int ndl_hashtable_copy(ndl_hashtable *to, ndl_hashtable *from) {
         return -1;
 
     void *val;
-    void *next = ndl_hashtable_keyhead(from);
+    void *next = ndl_hashtable_pairs_head(from);
     while (next != NULL) {
 
-        val = ndl_hashtable_put(to, next, ((uint8_t *) next) + from->key_size);
+        void *key = ndl_hashtable_pairs_key(from, next);
+        val = ndl_hashtable_put(to, key, ((uint8_t *) key) + from->key_size);
         if (val == NULL)
             return -1;
 
-        next = ndl_hashtable_keynext(from, next);
+        next = ndl_hashtable_pairs_next(from, next);
     }
 
     return 0;
@@ -199,7 +200,7 @@ static inline ndl_hashtable_bucket *ndl_hashtable_bucketscan(ndl_hashtable *tabl
     return NULL;
 }
 
-void *ndl_hashtable_keyhead(ndl_hashtable *table) {
+void *ndl_hashtable_pairs_head(ndl_hashtable *table) {
 
     ndl_hashtable_bucket *buckethead =
         ndl_hashtable_bucketscan(table, (ndl_hashtable_bucket *) table->data);
@@ -207,49 +208,33 @@ void *ndl_hashtable_keyhead(ndl_hashtable *table) {
     if (buckethead == NULL)
         return NULL;
 
-    return ((uint8_t *) buckethead) + sizeof(ndl_hashtable_bucket);
+    return buckethead;
 }
 
-void *ndl_hashtable_keynext(ndl_hashtable *table, void *last) {
+void *ndl_hashtable_pairs_next(ndl_hashtable *table, void *prev) {
 
-    if (last == NULL)
+    if (prev == NULL)
         return NULL;
 
     ndl_hashtable_bucket *nextbucket = (ndl_hashtable_bucket *)
-        (((uint8_t *) last) + table->key_size + table->val_size);
+        (((uint8_t *) prev) + sizeof(ndl_hashtable_bucket) + table->key_size + table->val_size);
 
     nextbucket = ndl_hashtable_bucketscan(table, nextbucket);
 
     if (nextbucket == NULL)
         return NULL;
 
-    return ((uint8_t *) nextbucket) + sizeof(ndl_hashtable_bucket);
+    return nextbucket;
 }
 
-void *ndl_hashtable_valhead(ndl_hashtable *table) {
+void *ndl_hashtable_pairs_key(ndl_hashtable *table, void *curr) {
 
-    ndl_hashtable_bucket *buckethead =
-        ndl_hashtable_bucketscan(table, (ndl_hashtable_bucket *) table->data);
-
-    if (buckethead == NULL)
-        return NULL;
-
-    return ((uint8_t *) buckethead) + sizeof(ndl_hashtable_bucket) + table->key_size;
+    return ((uint8_t *) curr) + sizeof(ndl_hashtable_bucket);
 }
 
-void *ndl_hashtable_valnext(ndl_hashtable *table, void *last) {
+void *ndl_hashtable_pairs_val(ndl_hashtable *table, void *curr) {
 
-    if (last == NULL)
-        return NULL;
-
-    ndl_hashtable_bucket *nextbucket = (ndl_hashtable_bucket *) (((uint8_t *) last) + table->val_size);
-
-    nextbucket = ndl_hashtable_bucketscan(table, nextbucket);
-
-    if (nextbucket == NULL)
-        return NULL;
-
-    return ((uint8_t *) nextbucket) + sizeof(ndl_hashtable_bucket) + table->key_size;
+    return ((uint8_t *) curr) + sizeof(ndl_hashtable_bucket) + table->key_size;
 }
 
 uint64_t ndl_hashtable_cap(ndl_hashtable *table) {

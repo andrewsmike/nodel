@@ -71,23 +71,24 @@ void *ndl_hashtable_get(ndl_hashtable *table, void *key);
 void *ndl_hashtable_put(ndl_hashtable *table, void *key, void *value);
 int   ndl_hashtable_del(ndl_hashtable *table, void *key);
 
-/* Iterate over elements of a hashtable.
+/* Iterate over elements of an rhashtable.
+ * These iterators are considered __INVALID__ after the next table modifying operation.
  *
- * keyhead() gets the first key in the hashtable.
- *     Returns NULL at end of list.
- * keynext() gets the next key in the hashtable.
- *     Returns NULL at end of list. You can assume value = (((uint8_t *) key) + sizeof(key)).
+ * pairs_head() gets the first key/value pair in the rhashtable.
+ *     Returns NULL on error, end of list.
+ * pairs_next() gets the next key/value pair in the hashtable.
+ *     Returns NULL on error, end of list.
  *
- * valhead() gets the first value in the hashtable.
- *     Returns NULL at end of list.
- * valnext() gets the next value in the hashtable.
- *     Returns NULL at end of list.
+ * pairs_key() gets the key for the pair iterator.
+ *     Returns NULL on error.
+ * pairs_val() gets the value for the pair iterator.
+ *     Returns NULL on error.
  */
-void *ndl_hashtable_keyhead(ndl_hashtable *table);
-void *ndl_hashtable_keynext(ndl_hashtable *table, void *last);
+void *ndl_hashtable_pairs_head(ndl_hashtable *table);
+void *ndl_hashtable_pairs_next(ndl_hashtable *table, void *prev);
 
-void *ndl_hashtable_valhead(ndl_hashtable *table);
-void *ndl_hashtable_valnext(ndl_hashtable *table, void *last);
+void *ndl_hashtable_pairs_key(ndl_hashtable *table, void *curr);
+void *ndl_hashtable_pairs_val(ndl_hashtable *table, void *curr);
 
 /* Hashtable metadata.
  *

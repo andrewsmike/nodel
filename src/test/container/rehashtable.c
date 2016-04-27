@@ -52,16 +52,10 @@ char *ndl_test_rehashtable_it(void) {
         return "Required wrong amount of memory";
     }
 
-    if (ndl_rhashtable_keyhead(table) != NULL) {
+    if (ndl_rhashtable_pairs_head(table) != NULL) {
         ndl_rhashtable_print(table);
         ndl_rhashtable_kill(table);
         return "Empty table gives valid key iterator.";
-    }
-
-    if (ndl_rhashtable_valhead(table) != NULL) {
-        ndl_rhashtable_print(table);
-        ndl_rhashtable_kill(table);
-        return "Empty table gives valid value iterator.";
     }
 
     void *data;
@@ -104,20 +98,22 @@ char *ndl_test_rehashtable_it(void) {
         return "Got wrong value for 4";
     }
     
-    c = ndl_rhashtable_keyhead(table);
+    c = ndl_rhashtable_pairs_head(table);
     while (c != NULL) {
 
-        if (c == NULL) {
+        int *data = ndl_rhashtable_pairs_key(table, c);
+
+        if (data == NULL) {
             ndl_rhashtable_print(table);
             ndl_rhashtable_kill(table);
             return "Failed to get element";
         }
-        if (*c != *(c + 1) - 3) {
+        if (*data != *(data + 1) - 3) {
             ndl_rhashtable_print(table);
             ndl_rhashtable_kill(table);
             return "Got wrong data";
         }
-        c = ndl_rhashtable_keynext(table, c);
+        c = ndl_rhashtable_pairs_next(table, c);
     }
 
     ndl_rhashtable_kill(table);
@@ -171,9 +167,9 @@ char *ndl_test_rehashtable_volume(void) {
         return "Found wrong number of items given current hash function";
     }
 
-    int *key = ndl_rhashtable_keyhead(table);
-    for (i = 0; key != NULL; i++) {
-        key = ndl_rhashtable_keynext(table, key);
+    int *pair = ndl_rhashtable_pairs_head(table);
+    for (i = 0; pair != NULL; i++) {
+        pair = ndl_rhashtable_pairs_next(table, pair);
     }
     if (i != 20) {
         ndl_rhashtable_print(table);

@@ -15,8 +15,8 @@ typedef struct ndl_graph_s {
  * kill() frees all graph resources and the given graph.
  *
  * minit() creates a graph in the given region.
- * msize() gives the size needed to store a graph.
  * mkill() frees the graph's resources, but not its region.
+ * msize() gives the size needed to store a graph.
  */
 ndl_graph *ndl_graph_init(void);
 void       ndl_graph_kill(ndl_graph *graph);
@@ -106,7 +106,7 @@ uint64_t ndl_graph_backrefs(ndl_graph *graph, ndl_ref to, ndl_ref from);
  * from_mem() retrieves a graph from a block of memory.
  *     Returns NULL on error.
  */
-int64_t    ndl_graph_mem_est (ndl_graph *graph);
+uint64_t   ndl_graph_mem_est (ndl_graph *graph);
 int64_t    ndl_graph_to_mem  (ndl_graph *graph, uint64_t maxlen, void *mem);
 ndl_graph *ndl_graph_from_mem(                  uint64_t maxlen, void *mem);
 

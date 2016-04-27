@@ -974,12 +974,18 @@ int ndl_runtime_proc_kill(ndl_runtime *runtime, int64_t pid) {
 
 int64_t *ndl_runtime_proc_head(ndl_runtime *runtime) {
 
+    /* TODO: Replace runtime.
     return (int64_t *) ndl_rhashtable_keyhead(runtime->procs);
+    */
+    return NULL;
 }
 
 int64_t *ndl_runtime_proc_next(ndl_runtime *runtime, int64_t *last) {
 
+    /* TODO: Replace runtime.
     return (int64_t *) ndl_rhashtable_keynext(runtime->procs, (void *) last);
+    */
+    return NULL;
 }
 
 ndl_graph *ndl_runtime_graph(ndl_runtime *runtime) {

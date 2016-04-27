@@ -31,8 +31,7 @@ ndl_rhashtable *ndl_rhashtable_init(uint64_t key_size, uint64_t val_size, uint64
 void ndl_rhashtable_kill(ndl_rhashtable *table) {
 
     ndl_rhashtable_mkill(table);
-    if (table != NULL)
-        free(table);
+    free(table);
 
     return;
 }
@@ -159,25 +158,25 @@ int ndl_rhashtable_del(ndl_rhashtable *table, void *key) {
     return ret;
 }
 
-void *ndl_rhashtable_keyhead(ndl_rhashtable *table) {
+void *ndl_rhashtable_pairs_head(ndl_rhashtable *table) {
 
-    return ndl_hashtable_keyhead(table->table);
+    return ndl_hashtable_pairs_head(table->table);
 }
 
-void *ndl_rhashtable_keynext(ndl_rhashtable *table, void *last) {
+void *ndl_rhashtable_pairs_next(ndl_rhashtable *table, void *prev) {
 
-    return ndl_hashtable_keynext(table->table, last);
+    return ndl_hashtable_pairs_next(table->table, prev);
 }
 
-void *ndl_rhashtable_valhead(ndl_rhashtable *table) {
 
-    return ndl_hashtable_valhead(table->table);
+void *ndl_rhashtable_pairs_key(ndl_rhashtable *table, void *curr) {
 
+    return ndl_hashtable_pairs_key(table->table, curr);
 }
 
-void *ndl_rhashtable_valnext(ndl_rhashtable *table, void *last) {
+void *ndl_rhashtable_pairs_val(ndl_rhashtable *table, void *curr) {
 
-    return ndl_hashtable_valnext(table->table, last);
+    return ndl_hashtable_pairs_val(table->table, curr);
 }
 
 uint64_t ndl_rhashtable_min(ndl_rhashtable *table) {

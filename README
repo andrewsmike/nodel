@@ -59,8 +59,8 @@ Refactoring/improvements:
 - - Debug and test like hell
 - - Heavy performance analysis (how slow are waittables?)
 - - Runtime serialization (possibly just encode into graph, save graph and root)
-- Recursive resizable hashtable for efficient node ID -> *hashtable lookup.
-- - Or fancy lazy copy/growth hashtable
+- Move rehashtable to lazy copy for absolute O(1), rather than amortized O(1).
+- Unify rehashtable iterators.
 - Further performance analysis
 - Refactor codebase with consistent style (naming, whitespace, struct members, etc)
 - Improve testing system and more tests.

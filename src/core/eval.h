@@ -86,8 +86,9 @@ ndl_eval_result ndl_eval(ndl_graph *graph, ndl_ref local);
  *
  * opcode_lookup() gets the evaluation function for the given opcode symbol.
  *
- * opcodes_head() gets the pointer to the first opcode key in the hashtable.
- * opcodes_next() gets the pointer to the next opcode key in the hashtable.
+ * opcodes_head() gets the iterator to the first opcode key in the hashtable.
+ * opcodes_next() gets the iterator to the next opcode key in the hashtable.
+ * opcodes_get() gets the symbol for opcode at the iterator.
  *
  * opcodes_ref() adds a reference to the opcode system. May generate table.
  * opcodes_deref() removes a reference to the opcode table. If refcount == 0, frees.
@@ -96,8 +97,9 @@ typedef ndl_eval_result (*ndl_eval_func)(ndl_graph *graph, ndl_ref local, ndl_re
 
 ndl_eval_func ndl_eval_opcode_lookup(ndl_sym opcode);
 
-ndl_sym *ndl_eval_opcodes_head(void);
-ndl_sym *ndl_eval_opcodes_next(ndl_sym *last);
+void *ndl_eval_opcodes_head(void);
+void *ndl_eval_opcodes_next(void *prev);
+ndl_sym ndl_eval_opcodes_get(void *curr);
 
 void ndl_eval_opcodes_ref(void);
 void ndl_eval_opcodes_deref(void);
