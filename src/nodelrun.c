@@ -103,7 +103,7 @@ int main(int argc, char *argv[]) {
     ndl_runtime *runtime = ndl_runtime_init(graph);
 
     ndl_ref local = ndl_graph_alloc(graph);
-    ndl_graph_set(graph, local, NDL_SYM("instpntr"), NDL_VALUE(EVAL_REF, ref=(ndl_ref) 0));
+    ndl_graph_set(graph, local, NDL_SYM("instpntr"), NDL_VALUE(EVAL_REF, ref=(ndl_ref) 1));
 
     argc -= 2;
 
