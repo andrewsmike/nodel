@@ -83,7 +83,11 @@ static inline uint64_t ndl_hashtable_hash(ndl_hashtable *table, void *key) {
     if (extra_word)
         sum += ((uint32_t *) key)[size_32 - 1];
 
-    return (sum + (sum << 1)) % table->capacity;
+    sum /= 3;
+    sum ^= sum >> 16;
+    sum += sum << 2;
+
+    return ((sum + (sum << 1))) % table->capacity;
 }
 
 static inline int ndl_hashtable_keycmp(ndl_hashtable *table, ndl_hashtable_bucket *bucket, void *key) {
