@@ -68,9 +68,6 @@ ndl_ref ndl_graph_alloc(ndl_graph *graph) {
     int err = ndl_node_pool_put((ndl_node_pool *) graph->pool,
                                 ret, NDL_SYM("\0gcsweep"), NDL_VALUE(EVAL_INT, num=-1));
 
-    err |= ndl_node_pool_put((ndl_node_pool *) graph->pool,
-                             ret, NDL_BACKREF(ret), NDL_VALUE(EVAL_INT, num=1));
-
     if (err != 0) {
         ndl_node_pool_free((ndl_node_pool *) graph->pool, ret);
         return NDL_NULL_REF;
@@ -110,9 +107,6 @@ ndl_ref ndl_graph_salloc(ndl_graph *graph, ndl_ref base, ndl_sym key) {
 
     int err = ndl_node_pool_put((ndl_node_pool *) graph->pool,
                                 ret, NDL_SYM("\0gcsweep"), NDL_VALUE(EVAL_INT, num=0));
-
-    err |= ndl_node_pool_put((ndl_node_pool *) graph->pool,
-                             ret, NDL_BACKREF(ret), NDL_VALUE(EVAL_INT, ref=1));
 
     err |= ndl_node_pool_put((ndl_node_pool *) graph->pool,
                              ret, NDL_BACKREF(base), NDL_VALUE(EVAL_INT, ref=1));
