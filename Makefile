@@ -19,7 +19,7 @@ SUBS=container runtime core test
 # Source and header files.
 SRC_CORE_OBJS=graph node asm nodepool eval opcodes
 SRC_CONTAINER_OBJS =heap vector hashtable slab slabheap rehashtable
-SRC_RUNTIME_OBJS=runtime
+SRC_RUNTIME_OBJS=runtime ndltime
 SRC_OBJS=$(addprefix core/, $(SRC_CORE_OBJS)) \
          $(addprefix container/, $(SRC_CONTAINER_OBJS)) \
          $(addprefix runtime/, $(SRC_RUNTIME_OBJS))
