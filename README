@@ -48,21 +48,18 @@ able to run programs generated from a basic assembly language.
 Future work
 -----------
 Refactoring/improvements:
-- Obliviate nodepool (replace with multiple slab hashtable pools for nodes)
+- Move rehashtable to lazy copy for absolute O(1), rather than amortized O(1).
+
 - Continue work on the runtime systems
-- - Break into multiple files and refactor
-- - Better tools for debugging specific processes (process error message, error state)
-- - Add occasional GC call somewhere
+- - Rebuild and refactor everything
+- - Comprehensive process control
+- - Add periodic GC
 - - Add excall hook and registry system
 - - - Storage management excalls (dcopy)?
 - - - Process management excalls?
-- - Debug and test like hell
-- - Heavy performance analysis (how slow are waittables?)
 - - Runtime serialization (possibly just encode into graph, save graph and root)
-- Move rehashtable to lazy copy for absolute O(1), rather than amortized O(1).
-- Unify rehashtable iterators.
+
 - Further performance analysis
-- Refactor codebase with consistent style (naming, whitespace, struct members, etc)
 - Improve testing system and more tests.
 
 Features:
