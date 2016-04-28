@@ -105,6 +105,11 @@ static inline void ndl_test_init(void) {
     ndl_test_register("ndl.graph.gc", &ndl_test_graph_gc);
     ndl_test_register("ndl.graph.kv_it", &ndl_test_graph_kv_it);
     ndl_test_register("ndl.graph.backref", &ndl_test_graph_backref);
+
+    /* Runtime */
+    ndl_test_register("ndl.time.conv", &ndl_test_time_conv);
+    ndl_test_register("ndl.time.add", &ndl_test_time_add);
+    ndl_test_register("ndl.time.get", &ndl_test_time_get);
 }
 
 int main(int argc, char *argv[]) {

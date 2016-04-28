@@ -1,5 +1,7 @@
 #include "ndltime.h"
 
+#include <stdio.h>
+
 #define GIGA 1000000000
 #define MEGA 1000000
 #define KILO 1000
@@ -59,7 +61,7 @@ ndl_time ndl_time_from_usec(int64_t duration) {
 
     struct timespec ret;
     ret.tv_sec = duration / MEGA;
-    ret.tv_nsec = duration % MEGA;
+    ret.tv_nsec = (duration % MEGA) * KILO;
 
     if (ret.tv_nsec < 0) {
         ret.tv_nsec += GIGA;
@@ -77,4 +79,10 @@ ndl_time ndl_time_get(void) {
         return NDL_TIME_ZERO;
 
     return ret;
+}
+
+void ndl_time_print(ndl_time time) {
+
+    printf("Printing time:\n");
+    printf("%lds%ldns\n", time.tv_sec, time.tv_nsec);
 }

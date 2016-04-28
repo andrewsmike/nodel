@@ -41,5 +41,8 @@ ndl_time ndl_time_from_usec(int64_t duration);
  */
 ndl_time ndl_time_get(void);
 
+/* Print a time. */
+void ndl_time_print(ndl_time time);
+
 
 #endif /* NODEL_TIME_H */

@@ -64,4 +64,9 @@ char *ndl_test_graph_gc(void);
 char *ndl_test_graph_kv_it(void);
 char *ndl_test_graph_backref(void);
 
+/* Runtime */
+char *ndl_test_time_conv(void);
+char *ndl_test_time_add(void);
+char *ndl_test_time_get(void);
+
 #endif /* NODEL_TEST_H */
