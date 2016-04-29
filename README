@@ -49,6 +49,7 @@ Future work
 -----------
 Refactoring/improvements:
 - Move rehashtable to lazy copy for absolute O(1), rather than amortized O(1).
+- Move away from lazy delete.
 
 - Continue work on the runtime systems
 - - Rebuild and refactor everything
