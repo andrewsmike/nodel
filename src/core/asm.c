@@ -688,15 +688,15 @@ void ndl_asm_print_err(ndl_asm_result res) {
 
     if (res.msg == NULL) {
 
-        printf("Successfully assembled program.\n");
-        printf("Root node, graph pointer: %ld@%p\n", res.root, (void *) res.graph);
+        fprintf(stderr, "Successfully assembled program.\n");
+        fprintf(stderr, "Root node, graph pointer: %ld@%p\n", res.root, (void *) res.graph);
     } else {
 
-        printf("Failed to assemble program.\n");
-        printf("%03ld:%03ld: %s\n", res.line, res.column, res.msg);
+        fprintf(stderr, "Failed to assemble program.\n");
+        fprintf(stderr, "%03ld:%03ld: %s\n", res.line, res.column, res.msg);
 
         if (res.src == NULL) {
-            printf("Failed to print line: Source not included.\n");
+            fprintf(stderr, "Failed to print line: Source not included.\n");
         }
 
         long int line = res.line;
@@ -707,7 +707,7 @@ void ndl_asm_print_err(ndl_asm_result res) {
                 curr++;
 
             if (*curr == '\0') {
-                printf("Failed to print line: line number is out of range.\n");
+                fprintf(stderr, "Failed to print line: line number is out of range.\n");
                 return;
             }
 
@@ -720,23 +720,24 @@ void ndl_asm_print_err(ndl_asm_result res) {
         while ((*curr != '\n') && (*curr != '\r') && (*curr != '\0'))
             curr++;
 
-        char *nline = malloc((unsigned long) (curr - base + 1));
+        char *nline = malloc((unsigned long) (curr - base + 2));
         memcpy(nline, base, (unsigned long) (curr - base));
-        nline[curr - base] = '\0';
+        nline[curr - base] = '\n';
+        nline[curr - base + 1] = '\0';
 
-        printf("----|Start Error|------------------\n");
-        puts(nline);
+        fprintf(stderr, "----|Start Error|------------------\n");
+        fputs(nline, stderr);
         if ((res.column < (curr - base)) && (res.column > 0)) {
             memset(nline, ' ', (unsigned long) (curr - base));
             nline[res.column] = '^';
-            puts(nline);
+            fputs(nline, stderr);
         }
-        printf("------|End Error|------------------\n");
+        fprintf(stderr, "------|End Error|------------------\n");
     }
 
-    printf("--|Start Program|------------------\n");
-    printf("%s", res.src);
-    printf("----|End Program|------------------\n");
+    fprintf(stderr, "--|Start Program|------------------\n");
+    fprintf(stderr, "%s", res.src);
+    fprintf(stderr, "----|End Program|------------------\n");
 
     return;
 }
