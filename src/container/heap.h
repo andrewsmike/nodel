@@ -9,10 +9,12 @@
  */
 
 typedef int (*ndl_heap_cmp_func)(void *a, void *b);
+typedef void (*ndl_heap_swap_func)(void *a, void *b);
 
 typedef struct ndl_heap_s {
 
-    ndl_heap_cmp_func compare;
+    ndl_heap_cmp_func  compare;
+    ndl_heap_swap_func swap;
 
     uint8_t vector[];
 
@@ -29,13 +31,16 @@ typedef struct ndl_heap_s {
  * mkill() cleans up a heap without freeing it.
  * msize() gets the size needed to store a heap.
  */
-ndl_heap *ndl_heap_init(uint64_t data_size, ndl_heap_cmp_func compare);
+ndl_heap *ndl_heap_init(uint64_t data_size,
+                        ndl_heap_cmp_func compare, ndl_heap_swap_func swap);
 
 void      ndl_heap_kill(ndl_heap *heap);
 
-ndl_heap *ndl_heap_minit(void *region, uint64_t data_size, ndl_heap_cmp_func compare);
+ndl_heap *ndl_heap_minit(void *region, uint64_t data_size,
+                         ndl_heap_cmp_func compare, ndl_heap_swap_func swap);
 void      ndl_heap_mkill(ndl_heap *heap);
-uint64_t  ndl_heap_msize(uint64_t data_size, ndl_heap_cmp_func compare);
+uint64_t  ndl_heap_msize(uint64_t data_size,
+                         ndl_heap_cmp_func compare, ndl_heap_swap_func swap);
 
 /* Get head, peek head, put, and delete items from the heap.
  * Pointers are invalidated on modifying operations.
@@ -78,8 +83,9 @@ void *ndl_heap_next(ndl_heap *heap, void *prev);
  * size() gets the number of nodes in the heap.
  * cap() gets the *current* capacity, without growing the vector.
  */
-uint64_t          ndl_heap_data_size(ndl_heap *heap);
-ndl_heap_cmp_func ndl_heap_compare  (ndl_heap *heap);
+uint64_t           ndl_heap_data_size(ndl_heap *heap);
+ndl_heap_cmp_func  ndl_heap_compare  (ndl_heap *heap);
+ndl_heap_swap_func ndl_heap_swap     (ndl_heap *heap);
 
 uint64_t ndl_heap_size(ndl_heap *heap);
 uint64_t ndl_heap_cap (ndl_heap *heap);

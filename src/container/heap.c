@@ -8,13 +8,14 @@
 
 #include <stdio.h>
 
-ndl_heap *ndl_heap_init(uint64_t data_size, ndl_heap_cmp_func compare) {
+ndl_heap *ndl_heap_init(uint64_t data_size,
+                        ndl_heap_cmp_func compare, ndl_heap_swap_func swap) {
 
-    void *region = malloc(ndl_heap_msize(data_size, compare));
+    void *region = malloc(ndl_heap_msize(data_size, compare, swap));
     if (region == NULL)
         return NULL;
 
-    ndl_heap *ret = ndl_heap_minit(region, data_size, compare);
+    ndl_heap *ret = ndl_heap_minit(region, data_size, compare, swap);
     if (ret == NULL)
         free(region);
 
@@ -31,7 +32,8 @@ void ndl_heap_kill(ndl_heap *heap) {
     free(heap);
 }
 
-ndl_heap *ndl_heap_minit(void *region, uint64_t data_size, ndl_heap_cmp_func compare) {
+ndl_heap *ndl_heap_minit(void *region, uint64_t data_size,
+                         ndl_heap_cmp_func compare, ndl_heap_swap_func swap) {
 
     ndl_heap *heap = (ndl_heap *) region;
     if (heap == NULL)
@@ -42,6 +44,7 @@ ndl_heap *ndl_heap_minit(void *region, uint64_t data_size, ndl_heap_cmp_func com
         return NULL;
 
     heap->compare = compare;
+    heap->swap = swap;
 
     return heap;
 }
@@ -56,7 +59,8 @@ void ndl_heap_mkill(ndl_heap *heap) {
     return;
 }
 
-uint64_t ndl_heap_msize(uint64_t data_size, ndl_heap_cmp_func compare) {
+uint64_t ndl_heap_msize(uint64_t data_size,
+                        ndl_heap_cmp_func compare, ndl_heap_swap_func swap) {
 
     return sizeof(ndl_heap) + ndl_vector_msize(data_size);
 }
@@ -104,29 +108,9 @@ static inline void *ndl_heap_rchild(ndl_vector *vec, void *elem) {
     return (void *) (((uint8_t *) base) + elem_size * cindex);
 }
 
-/* TODO: Optimize? */
-static inline void ndl_heap_swap(uint64_t elem_size, void *a, void *b) {
-
-    char *ac = (char *) a;
-    char *bc = (char *) b;
-
-    uint64_t i;
-    for (i = 0; i < elem_size; i++) {
-
-        char t = *ac;
-        *ac = *bc;
-        *bc = t;
-
-        ac++;
-        bc++;
-    }
-}
-
 static inline void *ndl_heap_bubble(ndl_heap *heap, void *node) {
 
     ndl_vector *vec = (ndl_vector *) heap->vector;
-
-    uint64_t elem_size = ndl_vector_elem_size(vec);
 
     void *parent = ndl_heap_parent(vec, node);
     while (parent != NULL) {
@@ -134,7 +118,7 @@ static inline void *ndl_heap_bubble(ndl_heap *heap, void *node) {
         if (heap->compare(node, parent) <= 0)
             return node;
 
-        ndl_heap_swap(elem_size, node, parent);
+        heap->swap(node, parent);
 
         node = parent;
         parent = ndl_heap_parent(vec, node);
@@ -146,8 +130,6 @@ static inline void *ndl_heap_bubble(ndl_heap *heap, void *node) {
 static inline void *ndl_heap_sink(ndl_heap *heap, void *node) {
 
     ndl_vector *vec = (ndl_vector *) heap->vector;
-
-    uint64_t elem_size = ndl_vector_elem_size(vec);
 
     while (1) {
 
@@ -167,7 +149,7 @@ static inline void *ndl_heap_sink(ndl_heap *heap, void *node) {
 
         if (heap->compare(node, best) < 0) {
 
-            ndl_heap_swap(elem_size, node, best);
+            heap->swap(node, best);
 
             node = best;
 
