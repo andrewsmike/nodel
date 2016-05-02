@@ -1,4 +1,5 @@
 #include "eval.h"
+#include "excall.h"
 #include "opcodes.h"
 #include "rehashtable.h"
 
@@ -6,6 +7,7 @@
 
 static int ndl_eval_opcode_table_refs = -1;
 ndl_rhashtable *ndl_eval_opcode_table = NULL;
+ndl_excall *ndl_eval_excall_table = NULL;
 
 #define ADDOP(table, name, symbol)                                      \
     do {                                                                \
@@ -90,11 +92,20 @@ static inline void ndl_eval_gen_opcode_table(void) {
     if (ret == NULL)
         return;
 
-    int err = ndl_eval_prep_opcode_table(ret);
-    if (err != 0)
+    ndl_excall *excall = ndl_excall_init();
+    if (excall == NULL) {
         ndl_rhashtable_kill(ret);
+        return;
+    }
+
+    int err = ndl_eval_prep_opcode_table(ret);
+    if (err != 0) {
+        ndl_rhashtable_kill(ret);
+        ndl_excall_kill(excall);
+    }
 
     ndl_eval_opcode_table = ret;
+    ndl_eval_excall_table = excall;
 }
 
 static inline ndl_rhashtable *ndl_eval_get_opcode_table(void) {
@@ -129,7 +140,9 @@ void ndl_eval_opcodes_deref(void) {
 
         if (ndl_eval_opcode_table != NULL) {
             ndl_rhashtable_kill(ndl_eval_opcode_table);
+            ndl_excall_kill(ndl_eval_excall_table);
             ndl_eval_opcode_table = NULL;
+            ndl_eval_excall_table = NULL;
         }
     }
 
@@ -202,3 +215,7 @@ ndl_sym ndl_eval_opcodes_get(void *curr) {
     return *val;
 }
 
+ndl_excall *ndl_eval_excall(void) {
+
+    return ndl_eval_excall_table;
+}

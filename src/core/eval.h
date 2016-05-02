@@ -2,6 +2,7 @@
 #define NODEL_EVAL_H
 
 #include "graph.h"
+#include "excall.h"
 
 /* Instructions are represented as nodes in the graph.
  * Each instruction has a number of variables, based on its specific needs.
@@ -83,6 +84,8 @@ ndl_eval_result ndl_eval(ndl_graph *graph, ndl_ref local);
  * Opcodes can be queried by key and their keys enumerated.
  * Runs on a symbol->ndl_eval_func resizable hashtable backend, avoids too much iteration.
  * Iteration methods return NULL on end-of-list.
+ * Also creates and destroys an excall table with the opcode table.
+ * Excall table can be fetched and manipulated.
  *
  * opcode_lookup() gets the evaluation function for the given opcode symbol.
  *
@@ -92,6 +95,9 @@ ndl_eval_result ndl_eval(ndl_graph *graph, ndl_ref local);
  *
  * opcodes_ref() adds a reference to the opcode system. May generate table.
  * opcodes_deref() removes a reference to the opcode table. If refcount == 0, frees.
+ *
+ * excall() gets the excall table.
+ *     TODO: Move opcode and eval table to separate object?
  */
 typedef ndl_eval_result (*ndl_eval_func)(ndl_graph *graph, ndl_ref local, ndl_ref pc);
 
@@ -103,5 +109,7 @@ ndl_sym ndl_eval_opcodes_get(void *curr);
 
 void ndl_eval_opcodes_ref(void);
 void ndl_eval_opcodes_deref(void);
+
+ndl_excall *ndl_eval_excall(void);
 
 #endif /* NODEL_EVAL_H */
