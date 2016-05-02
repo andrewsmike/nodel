@@ -34,7 +34,7 @@ void        ndl_excall_kill(ndl_excall *table);
 
 ndl_excall *ndl_excall_minit(void *region);
 void        ndl_excall_mkill(ndl_excall *table);
-int64_t     ndl_excall_msize(void);
+uint64_t    ndl_excall_msize(void);
 
 /* Excall registration.
  *
@@ -45,9 +45,9 @@ int64_t     ndl_excall_msize(void);
  * get() gets an excall from the table.
  *     Returns pointer on success, NULL on error.
  */
-int ndl_excall_put(ndl_excall *table, ndl_sym name, ndl_excall_func *func);
+int ndl_excall_put(ndl_excall *table, ndl_sym name, ndl_excall_func func);
 int ndl_excall_del(ndl_excall *table, ndl_sym name);
-ndl_excall_func *ndl_excall_get(ndl_excall *table, ndl_sym name);
+ndl_excall_func ndl_excall_get(ndl_excall *table, ndl_sym name);
 
 /* Iterate over current excalls.
  * Iterators are invalidated on mutating operation.
@@ -65,7 +65,7 @@ ndl_excall_func *ndl_excall_get(ndl_excall *table, ndl_sym name);
 void *ndl_excall_head(ndl_excall *table);
 void *ndl_excall_next(ndl_excall *table, void *prev);
 
-ndl_sym          ndl_excall_key (ndl_excall *table, void *curr);
-ndl_excall_func *ndl_excall_func(ndl_excall *table, void *curr);
+ndl_sym         ndl_excall_key(ndl_excall *table, void *curr);
+ndl_excall_func ndl_excall_val(ndl_excall *table, void *curr);
 
 #endif /* NODEL_EXCALL_H */

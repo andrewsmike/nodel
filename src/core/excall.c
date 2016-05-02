@@ -1,5 +1,7 @@
 #include "excall.h"
 
+#include <stdlib.h>
+
 
 #define KEYSIZE (sizeof(ndl_sym))
 #define VALSIZE (sizeof(ndl_excall_func))
@@ -25,7 +27,7 @@ void ndl_excall_mkill(ndl_excall *table) {
     ndl_rhashtable_mkill((ndl_rhashtable *) table);
 }
 
-int64_t ndl_excall_msize(void) {
+uint64_t ndl_excall_msize(void) {
 
     return ndl_rhashtable_msize(KEYSIZE, VALSIZE, MINSIZE);
 }
@@ -68,10 +70,10 @@ ndl_sym ndl_excall_key(ndl_excall *table, void *curr) {
     if (key == NULL)
         return NDL_NULL_SYM;
 
-    return *((ndl_sym *) key)
+    return *((ndl_sym *) key);
 }
 
-ndl_excall_func ndl_excall_func(ndl_excall *table, void *curr) {
+ndl_excall_func ndl_excall_val(ndl_excall *table, void *curr) {
 
     void *func = ndl_rhashtable_pairs_val((ndl_rhashtable *) table, curr);
 
