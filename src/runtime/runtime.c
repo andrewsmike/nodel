@@ -1,77 +1,37 @@
 #include "runtime.h"
 #include "eval.h"
-#include "rehashtable.h"
-#include "slabheap.h"
 
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
+#include <limits.h>
 
-#include <time.h>
+static void ndl_runtime_clockevent_swap(void *a, void *b) {
 
-/* A Nodel runtime.
- * Stores a couple different structures.
- *
- * Events are things that happen after some trigger.
- * Events all link to a doubly linked PID list for wakeups.
- * There are two types of events.
- *
- * The first type is clock events.
- * The runtime has a heap of clock events, ordered by start time. These include
- * calls to sleep and running processes sleeping between cycles (when freq is limited.)
- *
- * The second type is wait based events.
- * Processes may 'wait' for a node to be modified.
- * These events are stored in a (resizable) hashtable mapping
- * node ID -> PID list. When a node is modified, all PIDs waiting
- * on it are moved to their various frequency events.
- */
-typedef struct ndl_clock_event_s {
+    ndl_runtime_clockevent *at = (ndl_runtime_clockevent *) a;
+    ndl_runtime_clockevent *bt = (ndl_runtime_clockevent *) b;
+    ndl_runtime_clockevent ct;
 
-    struct timespec when;
+     ct = *at;
+    *at = *bt;
+    *bt =  ct;
 
-    int64_t head_pid;
+    ndl_proc *aproc = ndl_runtime_proc(at->runtime, at->head);
+    if (aproc != NULL)
+        aproc->head = (void *) at;
 
-} ndl_clock_event;
+    ndl_proc *bproc = ndl_runtime_proc(bt->runtime, bt->head);
+    if (bproc != NULL)
+        bproc->head = (void *) bt;
+}
 
-typedef struct ndl_process_s {
+static int ndl_runtime_clockevent_cmp(void *a, void *b) {
 
-    /* Process state and event list. */
-    ndl_proc_state state;
+    ndl_runtime_clockevent *at = (ndl_runtime_clockevent *) a;
+    ndl_runtime_clockevent *bt = (ndl_runtime_clockevent *) b;
 
-    union {
-        ndl_clock_event *sleeping;
-        ndl_ref waiting;
-    } event_group;
-    int64_t event_prev_pid, event_next_pid;
-
-    uint64_t freq;
-
-    /* Metadata. */
-
-    int64_t pid;
-    ndl_ref local;
-
-} ndl_process;
-
-struct ndl_runtime_s {
-
-    int free_graph;
-    ndl_graph *graph;
-
-    /* Map from pid -> process. Don't hold pointers, rhashtable moves. */
-    int64_t next_pid;
-    ndl_rhashtable *procs;
-
-    /* Heap for clock events. */
-    ndl_slabheap *cevents;
-
-    /* Map from frequency to clock event. */
-    ndl_rhashtable *freqs;
-
-    /* Map from ndl_ref -> PID list head. */
-    ndl_rhashtable *waits;
-};
+    return ndl_time_cmp(at->when, bt->when);
+}
 
 ndl_runtime *ndl_runtime_init(ndl_graph *graph) {
 
@@ -99,29 +59,6 @@ void ndl_runtime_kill(ndl_runtime *runtime) {
     return;
 }
 
-
-static inline int ndl_runtime_run_cmp(struct timespec a, struct timespec b) {
-
-    if (a.tv_sec < b.tv_sec)
-        return -1;
-    else if (a.tv_sec > b.tv_sec)
-        return 1;
-    else if (a.tv_nsec < b.tv_nsec)
-        return -1;
-    else if (a.tv_nsec > b.tv_nsec)
-        return 1;
-
-    return 0;
-}
-
-static int ndl_clock_event_cmp(void *a, void *b) {
-
-    ndl_clock_event *ca = (ndl_clock_event *) a;
-    ndl_clock_event *cb = (ndl_clock_event *) b;
-
-    return ndl_runtime_run_cmp(ca->when, cb->when);
-}
-
 ndl_runtime *ndl_runtime_minit(void *region, ndl_graph *graph) {
 
     ndl_runtime *ret = region;
@@ -129,6 +66,7 @@ ndl_runtime *ndl_runtime_minit(void *region, ndl_graph *graph) {
     if (ret == NULL)
         return NULL;
 
+    /* Graph init. */
     if (graph == NULL) {
         ret->free_graph = 1;
 
@@ -143,7 +81,8 @@ ndl_runtime *ndl_runtime_minit(void *region, ndl_graph *graph) {
         ret->graph = graph;
     }
 
-    ndl_rhashtable *procs = ndl_rhashtable_init(sizeof(int64_t), sizeof(ndl_process), 16);
+    /* Procs init. */
+    ndl_rhashtable *procs = ndl_rhashtable_init(sizeof(ndl_pid), sizeof(ndl_proc), 64);
     if (procs == NULL) {
         if (ret->free_graph == 1)
             ndl_graph_kill(ret->graph);
@@ -151,12 +90,12 @@ ndl_runtime *ndl_runtime_minit(void *region, ndl_graph *graph) {
 
         return NULL;
     }
-    ret->next_pid = 0;
+    ret->next_pid = (ndl_pid) 1;
     ret->procs = procs;
 
-
-    ndl_rhashtable *freqs = ndl_rhashtable_init(sizeof(uint64_t), sizeof(ndl_clock_event *), 8);
-    if (freqs == NULL) {
+    /* Waitevents init. */
+    ndl_rhashtable *waitevents = ndl_rhashtable_init(sizeof(ndl_ref), sizeof(ndl_pid), 8);
+    if (waitevents == NULL) {
         if (ret->free_graph == 1)
             ndl_graph_kill(ret->graph);
         ndl_rhashtable_kill(procs);
@@ -164,33 +103,23 @@ ndl_runtime *ndl_runtime_minit(void *region, ndl_graph *graph) {
 
         return NULL;
     }
-    ret->freqs = freqs;
+    ret->waitevents = waitevents;
 
-
-    ndl_rhashtable *waits = ndl_rhashtable_init(sizeof(ndl_ref), sizeof(int64_t), 4);
-    if (waits == NULL) {
+    /* Clock event init. */
+    ndl_heap *clockevents =
+        ndl_heap_init(sizeof(ndl_runtime_clockevent),
+                      &ndl_runtime_clockevent_cmp,
+                      &ndl_runtime_clockevent_swap);
+    if (clockevents == NULL) {
         if (ret->free_graph == 1)
             ndl_graph_kill(ret->graph);
         ndl_rhashtable_kill(procs);
-        ndl_rhashtable_kill(freqs);
+        ndl_rhashtable_kill(waitevents);
         free(ret);
 
         return NULL;
     }
-    ret->waits = waits;
-
-    ndl_slabheap *cevents = ndl_slabheap_init(sizeof(ndl_clock_event), &ndl_clock_event_cmp, 16);
-    if (cevents == NULL) {
-        if (ret->free_graph == 1)
-            ndl_graph_kill(ret->graph);
-        ndl_rhashtable_kill(procs);
-        ndl_rhashtable_kill(freqs);
-        ndl_rhashtable_kill(waits);
-        free(ret);
-
-        return NULL;
-    }
-    ret->cevents = cevents;
+    ret->clockevents = clockevents;
 
     ndl_eval_opcodes_ref();
 
@@ -207,9 +136,8 @@ void ndl_runtime_mkill(ndl_runtime *runtime) {
             ndl_graph_kill(runtime->graph);
 
     if (runtime->procs != NULL) ndl_rhashtable_kill(runtime->procs);
-    if (runtime->freqs != NULL) ndl_rhashtable_kill(runtime->freqs);
-    if (runtime->waits != NULL) ndl_rhashtable_kill(runtime->waits);
-    if (runtime->cevents != NULL) ndl_slabheap_kill(runtime->cevents);
+    if (runtime->waitevents != NULL) ndl_rhashtable_kill(runtime->waitevents);
+    if (runtime->clockevents != NULL) ndl_heap_kill(runtime->clockevents);
 
     ndl_eval_opcodes_deref();
 }
@@ -219,555 +147,119 @@ uint64_t ndl_runtime_msize(ndl_graph *graph) {
     return sizeof(ndl_runtime);
 }
 
-/* Struct timespec helpers. */
+ndl_proc *ndl_runtime_proc(ndl_runtime *runtime, ndl_pid pid) {
 
-#define GIGA 1000000000
-#define MEGA 1000000
-#define KILO 1000
-
-static inline struct timespec ndl_runtime_run_ts_sub(struct timespec a, struct timespec b) {
-
-    struct timespec ret;
-    ret.tv_sec = a.tv_sec - b.tv_sec;
-    ret.tv_nsec = a.tv_nsec - b.tv_nsec;
-
-    if (ret.tv_nsec < 0) {
-        ret.tv_nsec += GIGA;
-        ret.tv_sec--;
-    }
-
-    return ret;
+    return (ndl_proc *) ndl_rhashtable_get(runtime->procs, &pid);
 }
 
-static inline struct timespec ndl_runtime_run_ts_add(struct timespec a, struct timespec b) {
+ndl_proc *ndl_runtime_proc_init(ndl_runtime *runtime,
+                                ndl_ref local, ndl_time period) {
 
-    struct timespec ret;
-    ret.tv_sec = a.tv_sec + b.tv_sec;
-    ret.tv_nsec = a.tv_nsec + b.tv_nsec;
+    ndl_pid pid = runtime->next_pid;
+    void *region = ndl_rhashtable_put(runtime->procs, &pid, NULL);
+    if (region == NULL)
+        return NULL;
 
-    if (ret.tv_nsec > GIGA) {
-        ret.tv_nsec -= GIGA;
-        ret.tv_sec++;
-    }
+    ndl_proc *proc = ndl_proc_minit(region, runtime, pid, local, period);
 
-    return ret;
+    runtime->next_pid++;
+
+    return proc;
 }
 
-static inline struct timespec ndl_runtime_run_usec_to_ts(int64_t interval) {
+int ndl_runtime_proc_kill(ndl_runtime *runtime, ndl_proc *proc) {
 
-    struct timespec ret;
-    ret.tv_sec = interval / MEGA;
-    ret.tv_nsec = interval % MEGA;
-
-    if (ret.tv_nsec < 0) {
-        ret.tv_nsec += GIGA;
-        ret.tv_sec--;
-    }
-
-    return ret;
-}
-
-static inline int64_t ndl_runtime_run_ts_to_usec(struct timespec interval) {
-
-    int64_t ret = 0;
-    ret += interval.tv_sec * MEGA;
-    ret += interval.tv_nsec / KILO;
-
-    return ret;
-}
-
-/* helpers for each process state transition. */
-
-/* suspended -> running */
-static inline int ndl_runtime_freq_add(ndl_runtime *runtime, int64_t pid, uint64_t freq) {
-
-    ndl_process *proc = ndl_rhashtable_get(runtime->procs, &pid);
-    if (proc == NULL)
-        return -1;
-
-    ndl_process *head = NULL;
-
-    ndl_clock_event *event = ndl_rhashtable_get(runtime->freqs, &freq);
-    if (event == NULL) {
-
-        ndl_clock_event cevent;
-        cevent.when = ndl_runtime_run_usec_to_ts((int64_t) 0);
-        cevent.head_pid = -1;
-
-        event = ndl_slabheap_put(runtime->cevents, &cevent);
-        if (event == NULL)
-            return -1;
-
-        ndl_clock_event *t = ndl_rhashtable_put(runtime->freqs, &freq, &event);
-        if (t == NULL) {
-            ndl_slabheap_del(runtime->cevents, event);
-            return -1;
-        }
-    } else {
-
-        head = ndl_rhashtable_get(runtime->procs, &event->head_pid);
-        if (head == NULL)
-            return -1;
-    }
-
-    if (head) head->event_prev_pid = pid;
-    proc->event_next_pid = event->head_pid;
-    proc->event_prev_pid = -1;
-    proc->state = ESTATE_RUNNING;
-    proc->event_group.sleeping = event;
-    event->head_pid = pid;
-
-    return 0;
-}
-
-/* running -> suspended */
-static inline int ndl_runtime_freq_del(ndl_runtime *runtime, int64_t pid) {
-
-    ndl_process *proc = ndl_rhashtable_get(runtime->procs, &pid);
-    if (proc == NULL)
-        return -1;
-
-    ndl_process *prev = NULL;
-    if (proc->event_prev_pid != -1) {
-        prev = ndl_rhashtable_get(runtime->procs, &proc->event_prev_pid);
-        if (prev == NULL)
-            return -1;
-    }
-
-    ndl_process *next = NULL;
-    if (proc->event_next_pid != -1) {
-        next = ndl_rhashtable_get(runtime->procs, &proc->event_next_pid);
-        if (next == NULL)
-            return -1;
-    }
-
-    ndl_clock_event *event = proc->event_group.sleeping;
-
-    if ((prev == NULL) && (next == NULL)) {
-
-        int err = ndl_rhashtable_del(runtime->freqs, &proc->freq);
-        if (err != 0)
-            return err;
-
-        err = ndl_slabheap_del(runtime->cevents, event);
-        if (err != 0)
-            return err;
-    }
-
-    if ((prev == NULL) && (next != NULL))
-        event->head_pid = proc->event_next_pid;
-
-    if (prev != NULL)
-        prev->event_prev_pid = proc->event_next_pid;
-    if (next != NULL)
-        next->event_prev_pid = proc->event_prev_pid;
-
-    proc->event_group.sleeping = NULL;
-    proc->event_prev_pid = proc->event_next_pid = -1;
-    proc->state = ESTATE_SUSPENDED;
-
-    return 0;
-}
-
-/* suspended -> sleeping */
-static inline int ndl_runtime_sleep_add(ndl_runtime *runtime, int64_t pid, uint64_t interval) {
-
-    ndl_process *proc = ndl_rhashtable_get(runtime->procs, &pid);
-    if (proc == NULL)
-        return -1;
-
-    ndl_clock_event cevent;
-    int err = clock_gettime(CLOCK_BOOTTIME, &cevent.when);
+    int err = ndl_proc_suspend(proc);
     if (err != 0)
         return err;
 
-    cevent.when = ndl_runtime_run_ts_sub(cevent.when, ndl_runtime_run_usec_to_ts((int64_t) interval));
-
-    cevent.head_pid = pid;
-
-    void *event = ndl_slabheap_put(runtime->cevents, &cevent);
-    if (event == NULL)
-        return -1;
-
-    proc->state = ESTATE_SLEEPING;
-    proc->event_group.sleeping = event;
-    proc->event_prev_pid = proc->event_next_pid = -1;
-
-    return 0;
+    return ndl_rhashtable_del(runtime->procs, &proc->pid);
 }
 
-/* sleeping -> suspended */
-static inline int ndl_runtime_sleep_del(ndl_runtime *runtime, int64_t pid) {
+void *ndl_runtime_proc_head(ndl_runtime *runtime) {
 
-    ndl_process *proc = ndl_rhashtable_get(runtime->procs, &pid);
-    if (proc == NULL)
-        return -1;
-
-    ndl_clock_event *node = proc->event_group.sleeping;
-    int err = ndl_slabheap_del(runtime->cevents, node);
-    if (err != 0)
-        return err;
-
-    proc->event_group.sleeping = NULL;
-    proc->event_prev_pid = proc->event_next_pid = -1;
-    proc->state = ESTATE_SUSPENDED;
-
-    return 0;
+    return ndl_rhashtable_pairs_head(runtime->procs);
 }
 
-/* suspended -> waiting */
-static inline int ndl_runtime_wait_add(ndl_runtime *runtime, int64_t pid, ndl_ref node) {
+void *ndl_runtime_proc_next(ndl_runtime *runtime, void *prev) {
 
-    ndl_process *proc = ndl_rhashtable_get(runtime->procs, &pid);
-    if (proc == NULL)
-        return -1;
-
-    int64_t *listhead = ndl_rhashtable_get(runtime->waits, &node);
-    if (listhead == NULL) {
-
-        listhead = ndl_rhashtable_put(runtime->waits, &node, &pid);
-        if (listhead == NULL)
-            return -1;
-
-        proc->event_next_pid = -1;
-
-    } else {
-
-        int64_t oldpid = *listhead;
-
-        ndl_process *oldproc = ndl_rhashtable_get(runtime->procs, &oldpid);
-        if (oldproc == NULL)
-            return -1;
-
-        *listhead = pid;
-
-        proc->event_next_pid = oldpid;
-        oldproc->event_prev_pid = pid;
-    }
-
-    proc->event_prev_pid = -1;
-    proc->event_group.waiting = node;
-    proc->state = ESTATE_WAITING;
-
-    return 0;
+    return ndl_rhashtable_pairs_next(runtime->procs, prev);
 }
 
-/* waiting -> suspended */
-static inline int ndl_runtime_wait_del(ndl_runtime *runtime, int64_t pid) {
+ndl_pid ndl_runtime_proc_pid(ndl_runtime *runtime, void *curr) {
 
-    ndl_process *proc = ndl_rhashtable_get(runtime->procs, &pid);
-    if (proc == NULL)
-        return -1;
+    ndl_pid *res = (ndl_pid *) ndl_rhashtable_pairs_key(runtime->procs, curr);
+    if (res == NULL)
+        return NDL_NULL_PID;
 
-    ndl_process *prev = NULL;
-    ndl_process *next = NULL;
-
-    if (proc->event_prev_pid != -1) {
-
-        prev = ndl_rhashtable_get(runtime->waits, &proc->event_prev_pid);
-        if (prev == NULL)
-            return -1;
-    }
-
-    if (proc->event_next_pid != -1) {
-
-        next = ndl_rhashtable_get(runtime->waits, &proc->event_next_pid);
-        if (next == NULL)
-            return -1;
-    }
-
-    if (prev == NULL) {
-        int64_t *listhead = ndl_rhashtable_get(runtime->waits, &proc->event_group.waiting);
-        if (listhead == NULL)
-            return 0;
-
-        *listhead = proc->event_next_pid;
-        if (*listhead == -1) {
-
-            int err = ndl_rhashtable_del(runtime->waits, &proc->event_group.waiting);
-            if (err != 0) {
-                *listhead = pid;
-                return err;
-            }
-        }
-    } else {
-
-        prev->event_next_pid = proc->event_next_pid;
-    }
-
-    if (next != NULL) {
-
-        next->event_prev_pid = proc->event_prev_pid;
-    }
-
-    proc->event_group.sleeping = NULL;
-    proc->event_prev_pid = proc->event_next_pid = -1;
-    proc->state = ESTATE_SUSPENDED;
-
-    return 0;
+    return *res;
 }
 
-int ndl_runtime_proc_suspend(ndl_runtime *runtime, int64_t pid) {
+ndl_proc *ndl_runtime_proc_proc(ndl_runtime *runtime, void *curr) {
 
-    ndl_process *proc = ndl_rhashtable_get(runtime->procs, &pid);
-    if (proc == NULL)
-        return -1;
-
-    switch (proc->state) {
-    default:
-    case ESTATE_NONE:
-
-        return -1;
-
-    case ESTATE_SUSPENDED:
-
-        return 0;
-
-    case ESTATE_RUNNING:
-
-        return ndl_runtime_freq_del(runtime, pid);
-
-    case ESTATE_SLEEPING:
-
-        return ndl_runtime_sleep_del(runtime, pid);
-
-    case ESTATE_WAITING:
-
-        return ndl_runtime_wait_del(runtime, pid);
-    }
+    return (ndl_proc *) ndl_rhashtable_pairs_val(runtime->procs, curr);
 }
 
-int ndl_runtime_proc_resume(ndl_runtime *runtime, int64_t pid) {
+ndl_graph *ndl_runtime_graph(ndl_runtime *runtime) {
 
-    ndl_process *proc = ndl_rhashtable_get(runtime->procs, &pid);
-    if (proc == NULL)
-        return -1;
-
-    /* For safety. */
-    int err = ndl_runtime_proc_suspend(runtime, pid);
-    if (err != 0)
-        return err;
-
-    return ndl_runtime_freq_add(runtime, pid, proc->freq);
+    return runtime->graph;
 }
 
-int ndl_runtime_proc_setfreq(ndl_runtime *runtime, int64_t pid, uint64_t freq) {
+int ndl_runtime_graph_free(ndl_runtime *runtime) {
 
-    ndl_process *proc = ndl_rhashtable_get(runtime->procs, &pid);
-    if (proc == NULL)
-        return -1;
-
-    if (proc->state != ESTATE_RUNNING) {
-        proc->freq = freq;
-        return 0;
-    }
-
-    int err = ndl_runtime_proc_suspend(runtime, pid);
-    if (err != 0)
-        return err;
-
-    proc->freq = freq;
-
-    return ndl_runtime_proc_resume(runtime, pid);
+    return runtime->free_graph;
 }
 
-int64_t ndl_runtime_proc_getfreq(ndl_runtime *runtime, int64_t pid) {
+uint64_t ndl_runtime_proc_count(ndl_runtime *runtime) {
 
-    ndl_process *proc = ndl_rhashtable_get(runtime->procs, &pid);
-    if (proc == NULL)
-        return -1;
-
-    return (int64_t) proc->freq;
+    return ndl_rhashtable_size(runtime->procs);
 }
 
-int ndl_runtime_proc_setsleep(ndl_runtime *runtime, int64_t pid, uint64_t interval) {
+uint64_t ndl_runtime_proc_living(ndl_runtime *runtime) {
 
-    int err = ndl_runtime_proc_suspend(runtime, pid);
-    if (err != 0)
-        return err;
+    uint64_t total = ndl_runtime_proc_count(runtime);
 
-    return ndl_runtime_sleep_add(runtime, pid, interval);
-}
-
-int ndl_runtime_proc_setwait(ndl_runtime *runtime, int64_t pid, ndl_ref node) {
-
-    int err = ndl_runtime_proc_suspend(runtime, pid);
-    if (err != 0)
-        return err;
-
-    return ndl_runtime_wait_add(runtime, pid, node);
-}
-
-static inline int ndl_runtime_run_checkmod(ndl_runtime *runtime, ndl_ref ref) {
-
-    int64_t *headp = ndl_rhashtable_get(runtime->waits, &ref);
-    if (headp == NULL)
-        return 0;
-
-    int64_t head = *headp;
-
-    ndl_process *curr = ndl_rhashtable_get(runtime->procs, &head);
-    if (curr == NULL)
-        return -1;
-
+    void *curr = ndl_rhashtable_pairs_head(runtime->procs);
     while (curr != NULL) {
+        ndl_proc *proc = ndl_rhashtable_pairs_val(runtime->procs, curr);
+        if (proc != NULL)
+            if (!proc->active)
+                total--;
 
-        int64_t next_pid = curr->event_next_pid;
-
-        int err = ndl_runtime_proc_suspend(runtime, curr->pid);
-        if (err != 0)
-            return err;
-
-        err = ndl_runtime_proc_resume(runtime, curr->pid);
-        if (err != 0)
-            return err;
-
-        if (next_pid != -1)
-            curr = ndl_rhashtable_get(runtime->procs, &next_pid);
-        else
-            curr = NULL;
+        curr = ndl_rhashtable_pairs_next(runtime->procs, curr);
     }
 
-    return 0;
+    return total;
 }
 
-static void ndl_runtime_tick(ndl_runtime *runtime, int64_t pid) {
+int ndl_runtime_proc_alive(ndl_runtime *runtime) {
 
-    ndl_process *proc = ndl_rhashtable_get(runtime->procs, &pid);
-    if (proc == NULL)
-        return;
-
-    ndl_ref local = proc->local;
-    ndl_graph *graph = runtime->graph;
-
-    ndl_eval_result res = ndl_eval(graph, local);
-
-    int exit = 0;
-
-    int64_t npid;
-    int err;
-    switch (res.action) {
-    case EACTION_CALL:
-
-        if (res.actval.type != EVAL_REF || res.actval.ref == NDL_NULL_REF) {
-            exit = 3;
-        } else {
-            ndl_graph_unmark(graph, local);
-            ndl_graph_mark(graph, res.actval.ref);
-            proc->local = res.actval.ref;
-        }
-
-        break;
-
-    case EACTION_FORK:
-
-        if ((res.actval.type != EVAL_REF) || (res.actval.ref == NDL_NULL_REF)) {
-            exit = 3;
-        } else {
-            npid = ndl_runtime_proc_init(runtime, res.actval.ref);
-            if (npid < 0) {
-                exit = 2;
-                break;
-            }
-
-            err = ndl_runtime_proc_setfreq(runtime, npid, proc->freq);
-            if (err != 0) {
-                exit = 2;
-                break;
-            }
-
-            err = ndl_runtime_proc_resume(runtime, npid);
-            if (err != 0) {
-                exit = 2;
-                break;
-            }
-        }
-
-        break;
-
-    case EACTION_NONE:
-        break;
-
-    case EACTION_EXIT:
-        exit = 1;
-        break;
-
-    case EACTION_WAIT:
-        if ((res.actval.type != EVAL_REF) || (res.actval.ref == NDL_NULL_REF)) {
-            exit = 3;
-        } else {
-            err = ndl_runtime_proc_setwait(runtime, pid, res.actval.ref);
-            if (err != 0)
-                exit = 2;
-        }
-        break;
-
-    case EACTION_SLEEP:
-        if ((res.actval.type != EVAL_INT) || (res.actval.num < 0)) {
-            exit = 3;
-        } else {
-            err = ndl_runtime_proc_setsleep(runtime, pid, (uint64_t) res.actval.num);
-            if (err != 0)
-                exit = 2;
-        }
-        break;
-
-    case EACTION_EXCALL:
-        exit = 2;
-        break;
-
-    case EACTION_FAIL:
-    default:
-        exit = 3;
-        break;
-    }
-
-    int i;
-    for (i = 0; i < res.mod_count; i++) {
-
-        err = ndl_runtime_run_checkmod(runtime, res.mod[i]);
-        if (err != 0)
-            printf("[%3ld@%03ld] Failed to revive processes. God rest ye souls.\n", pid, local);
-    }
-
-    if (exit == 2)
-        printf("[%3ld@%03ld] Process used excalls. Process destroyed itself in its hubris.\n", pid, local);
-    if (exit == 3)
-        printf("[%3ld@%03ld] Invalid local or bad instruction. We couldn't save 'em.\n", pid, local);
-
-    if (exit != 0) {
-        err = ndl_runtime_proc_kill(runtime, pid);
-        if (err != 0)
-            printf("[%3ld@%03ld] Failed to kill process. Here be zombies.\n", pid, local);
-    }
+    return (ndl_heap_size(runtime->clockevents) != 0)? 1 : 0;
 }
 
-#define min(a, b) ((a < b)? a : b)
+static inline int ndl_runtime_run_event(ndl_runtime *runtime,
+                                        ndl_runtime_clockevent *head) {
 
-#define NDL_RUNTIME_RUN_RESOLUTION 20
-
-static inline int ndl_runtime_run_event(ndl_runtime *runtime, ndl_clock_event *head) {
-
-    int64_t pid = head->head_pid;
-    ndl_process *curr = ndl_rhashtable_get(runtime->procs, &pid);
+    ndl_pid pid = head->head;
+    ndl_proc *curr = ndl_rhashtable_get(runtime->procs, &pid);
     if (curr == NULL)
         return -1;
 
     if (curr->state == ESTATE_SLEEPING)
-        return ndl_runtime_proc_resume(runtime, pid);
+        return ndl_proc_cancel(curr);
 
-    int64_t freq = (int64_t) curr->freq;
+    ndl_time period = curr->period;
 
-    int64_t next_pid;
+    ndl_pid next_pid;
     int count = 0;
     do {
         curr = ndl_rhashtable_get(runtime->procs, &pid);
         if (curr == NULL)
             return -1;
 
-        next_pid = curr->event_next_pid;
+        next_pid = curr->event_next;
 
-        ndl_runtime_tick(runtime, pid);
+        ndl_proc_run(curr, 1); /* TODO: Increase? */
 
         count++;
 
@@ -775,26 +267,23 @@ static inline int ndl_runtime_run_event(ndl_runtime *runtime, ndl_clock_event *h
 
     } while (pid != -1);
 
-    head->when = ndl_runtime_run_ts_add(head->when,
-                                        ndl_runtime_run_usec_to_ts(freq));
-    ndl_slabheap_readj(runtime->cevents, head);
+    head->when = ndl_time_add(head->when, period);
+    ndl_heap_readj(runtime->clockevents, head);
 
     return count;
 }
 
-static inline int ndl_runtime_run_cready(ndl_runtime *runtime, int64_t timeout, struct timespec start) {
-
-    struct timespec end = ndl_runtime_run_usec_to_ts(timeout);
-    end = ndl_runtime_run_ts_add(end, start);
+#define NDL_RUNTIME_RUN_RESOLUTION 32
+static inline int ndl_runtime_run_cready(ndl_runtime *runtime, ndl_time timeout, ndl_time start) {
 
     int rcount = 0;
     int err = 0;
     while (err >= 0) {
-        ndl_clock_event *head = ndl_slabheap_peek(runtime->cevents);
+        ndl_runtime_clockevent *head = ndl_heap_peek(runtime->clockevents);
         if (head == NULL)
             return 0;
 
-        if (ndl_runtime_run_ts_sub(head->when, start).tv_sec < 0) {
+        if (ndl_time_sub(head->when, start).tv_sec < 0) {
 
             err = ndl_runtime_run_event(runtime, head);
             if (err < 0)
@@ -807,7 +296,9 @@ static inline int ndl_runtime_run_cready(ndl_runtime *runtime, int64_t timeout, 
         }
 
         if (rcount > NDL_RUNTIME_RUN_RESOLUTION) {
-            err = clock_gettime(CLOCK_BOOTTIME, &start);
+            start = ndl_time_get();
+            if (ndl_time_cmp(start, NDL_TIME_ZERO) == 0)
+                return -1;
             rcount = 0;
         }
     }
@@ -815,202 +306,119 @@ static inline int ndl_runtime_run_cready(ndl_runtime *runtime, int64_t timeout, 
     return err;
 }
 
-int ndl_runtime_run_ready(ndl_runtime *runtime, int64_t timeout) {
+int ndl_runtime_run_ready(ndl_runtime *runtime, ndl_time timeout) {
 
-    struct timespec start;
-    int err = clock_gettime(CLOCK_BOOTTIME, &start);
-    if (err != 0)
-        return err;
+    ndl_time start = ndl_time_get();
+    if (ndl_time_cmp(start, NDL_TIME_ZERO) == 0)
+        return -1;
 
     return ndl_runtime_run_cready(runtime, timeout, start);
 }
 
-static inline int64_t ndl_runtime_run_ctimeto(ndl_runtime *runtime, struct timespec now) {
+static inline ndl_time ndl_runtime_run_ctimeto(ndl_runtime *runtime, ndl_time now) {
 
-    ndl_clock_event *head = ndl_slabheap_peek(runtime->cevents);
+    ndl_runtime_clockevent *head = ndl_heap_peek(runtime->clockevents);
     if (head == NULL)
-        return -1;
+        return NDL_TIME_ZERO;
 
-    now = ndl_runtime_run_ts_sub(head->when, now);
-    if (now.tv_sec < 0)
-        return 0;
+    now = ndl_time_sub(head->when, now);
+    if (ndl_time_cmp(now, NDL_TIME_ZERO) < 0)
+        return NDL_TIME_ZERO;
 
-    return ndl_runtime_run_ts_to_usec(now);
+    return now;
 }
 
-#define NDL_RUNTIME_RUN_MIN_SLEEP_USEC 100
+#define NDL_RUNTIME_MIN_SLEEP (ndl_time_from_usec(10))
 
-static int64_t ndl_runtime_run_csleep(ndl_runtime *runtime, int64_t timeout, struct timespec start) {
+static ndl_time ndl_runtime_run_csleep(ndl_runtime *runtime, ndl_time timeout, ndl_time start) {
 
-    int64_t timeto = ndl_runtime_run_ctimeto(runtime, start);
-    if (timeto < 0)
-        return -1;
+    ndl_time timeto = ndl_runtime_run_ctimeto(runtime, start);
+    if (ndl_time_cmp(timeto, NDL_TIME_ZERO) == 0)
+        return NDL_TIME_ZERO;
 
-    if (timeto == 0)
-        return 0;
+    if (ndl_time_cmp(timeout, timeto) >= 0)
+        timeout = timeto;
 
-    if (timeout <= 0) timeout = timeto;
-
+    int64_t time = ndl_time_to_usec(timeout);
     int err;
-    uint32_t time = (uint32_t) min((uint64_t) timeto, (uint64_t) timeout);
-    if (time > NDL_RUNTIME_RUN_MIN_SLEEP_USEC)
-        err = usleep(time);
+    if (ndl_time_cmp(timeout, NDL_RUNTIME_MIN_SLEEP) >= 0)
+        err = usleep((uint32_t) time);
     else
-        return 0;
+        return NDL_TIME_ZERO;
 
     if (err != 0)
-        return err;
+        return NDL_TIME_ZERO;
 
-    struct timespec end;
-    err = clock_gettime(CLOCK_BOOTTIME, &end);
-    if (err != 0)
-        return err;
+    ndl_time end = ndl_time_get();
+    if (ndl_time_cmp(end, NDL_TIME_ZERO) == 0)
+        return NDL_TIME_ZERO;
 
-    end = ndl_runtime_run_ts_sub(end, start);
-
-    return (int64_t) ndl_runtime_run_ts_to_usec(end);
+    return ndl_time_sub(end, start);
 }
 
-int64_t ndl_runtime_run_sleep(ndl_runtime *runtime, int64_t timeout) {
+ndl_time ndl_runtime_run_sleep(ndl_runtime *runtime, ndl_time timeout) {
 
-    struct timespec start;
-    int err = clock_gettime(CLOCK_BOOTTIME, &start);
-    if (err != 0)
-        return err;
+    ndl_time start = ndl_time_get();
+    if (ndl_time_cmp(start, NDL_TIME_ZERO) == 0)
+        return NDL_TIME_ZERO;
 
     return ndl_runtime_run_csleep(runtime, timeout, start);
 }
 
-int64_t ndl_runtime_run_timeto(ndl_runtime *runtime) {
+ndl_time ndl_runtime_run_timeto(ndl_runtime *runtime) {
 
-    struct timespec now;
-    int err = clock_gettime(CLOCK_BOOTTIME, &now);
-    if (err != 0)
-        return err;
+    ndl_time now = ndl_time_get();
+    if (ndl_time_cmp(now, NDL_TIME_ZERO) == 0)
+        return NDL_TIME_ZERO;
 
     return ndl_runtime_run_ctimeto(runtime, now);
 }
 
-int ndl_runtime_run_for(ndl_runtime *runtime, int64_t timeout) {
+int ndl_runtime_run_for(ndl_runtime *runtime, ndl_time timeout) {
 
-    struct timespec curr;
-    int err = clock_gettime(CLOCK_BOOTTIME, &curr);
-    if (err != 0)
-        return err;
+    ndl_time curr = ndl_time_get();
+    if (ndl_time_cmp(curr, NDL_TIME_ZERO) == 0)
+        return -1;
 
-    struct timespec end = ndl_runtime_run_usec_to_ts(timeout);
-    if (end.tv_sec >= 0) {
-        end = ndl_runtime_run_ts_add(curr, end);
-    } else {
-        end.tv_sec = LONG_MAX;
-        end.tv_nsec = 0;
+    if (ndl_time_cmp(timeout, NDL_TIME_ZERO) == 0) {
+        timeout.tv_sec = LONG_MAX;
+        timeout.tv_nsec = 0;
     }
 
-    struct timespec diff = ndl_runtime_run_ts_sub(end, curr);
+    ndl_time diff = ndl_time_sub(timeout, curr);
 
     while (diff.tv_sec >= 0) {
 
-        err = ndl_runtime_run_cready(runtime, ndl_runtime_run_ts_to_usec(diff), curr);
+        int err = ndl_runtime_run_cready(runtime, diff, curr);
         if (err != 0)
             return err;
 
-        if (ndl_runtime_dead(runtime) != 0)
+        if (!ndl_runtime_proc_alive(runtime))
             return 0;
 
-        int err = clock_gettime(CLOCK_BOOTTIME, &curr);
-        if (err != 0)
-            return err;
+        curr = ndl_time_get();
+        if (ndl_time_cmp(curr, NDL_TIME_ZERO) == 0)
+            return -1;
 
-        diff = ndl_runtime_run_ts_sub(end, curr);
+        diff = ndl_time_sub(timeout, curr);
 
         if (diff.tv_sec < 0)
             return 0;
 
-        int64_t maxtime = ndl_runtime_run_ts_to_usec(diff);
-
-        int64_t time = ndl_runtime_run_csleep(runtime, maxtime, curr);
-        if (time == -1)
+        ndl_time time = ndl_runtime_run_csleep(runtime, diff, curr);
+        if (ndl_time_cmp(time, NDL_TIME_ZERO) == 0)
             return -1;
 
-        diff = ndl_runtime_run_usec_to_ts(time);
-        curr = ndl_runtime_run_ts_add(curr, diff);
-        diff = ndl_runtime_run_ts_sub(end, curr);
+        curr = ndl_time_add(curr, time);
+        diff = ndl_time_sub(timeout, curr);
     }
 
     return 0;
-}
-
-#define NDL_RUNTIME_FREQ_DEFAULT 10
-int64_t ndl_runtime_proc_init(ndl_runtime *runtime, ndl_ref local) {
-
-    int64_t pid = runtime->next_pid++;
-
-    ndl_process procbase;
-
-    procbase.event_group.waiting = NDL_NULL_REF;
-    procbase.event_prev_pid = procbase.event_next_pid = -1;
-    procbase.pid = pid;
-    procbase.state = ESTATE_SUSPENDED;
-    procbase.local = local;
-    procbase.freq = NDL_RUNTIME_FREQ_DEFAULT;
-    
-    ndl_process *proc = ndl_rhashtable_put(runtime->procs, &pid, &procbase);
-    if (proc == NULL) {
-        runtime->next_pid--;
-        return -1;
-    }
-
-    return pid;
-}
-
-int ndl_runtime_proc_kill(ndl_runtime *runtime, int64_t pid) {
-
-    int err = ndl_runtime_proc_suspend(runtime, pid);
-    if (err != 0)
-        return err;
-
-    return ndl_rhashtable_del(runtime->procs, &pid);
-}
-
-int64_t *ndl_runtime_proc_head(ndl_runtime *runtime) {
-
-    /* TODO: Replace runtime.
-    return (int64_t *) ndl_rhashtable_keyhead(runtime->procs);
-    */
-    return NULL;
-}
-
-int64_t *ndl_runtime_proc_next(ndl_runtime *runtime, int64_t *last) {
-
-    /* TODO: Replace runtime.
-    return (int64_t *) ndl_rhashtable_keynext(runtime->procs, (void *) last);
-    */
-    return NULL;
-}
-
-ndl_graph *ndl_runtime_graph(ndl_runtime *runtime) {
-
-    return runtime->graph;
-}
-
-int ndl_runtime_graphown(ndl_runtime *runtime) {
-
-    return runtime->free_graph;
-}
-
-uint64_t ndl_runtime_proc_count(ndl_runtime *runtime) {
-
-    return ndl_rhashtable_size(runtime->procs);
-}
-
-int ndl_runtime_dead(ndl_runtime *runtime) {
-
-    return (ndl_slabheap_peek(runtime->cevents) == NULL)? 1 : 0;
 }
 
 void ndl_runtime_print(ndl_runtime *runtime) {
 
     printf("Printing runtime.\n");
     ndl_rhashtable_print(runtime->procs);
-    ndl_slabheap_print(runtime->cevents);
+    ndl_heap_print(runtime->clockevents);
 }

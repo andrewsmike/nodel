@@ -259,6 +259,11 @@ ndl_heap_cmp_func ndl_heap_compare(ndl_heap *heap) {
     return heap->compare;
 }
 
+ndl_heap_swap_func ndl_heap_swap(ndl_heap *heap) {
+
+    return heap->swap;
+}
+
 uint64_t ndl_heap_size(ndl_heap *heap) {
 
     return ndl_vector_size((ndl_vector *) heap->vector);

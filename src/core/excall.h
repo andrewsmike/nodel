@@ -3,25 +3,26 @@
 
 #include <stdint.h>
 
-#include "node.h"
 #include "rehashtable.h"
 
+#include "node.h"
+
 /* Excall table management for evaluation.
- *
  * Excalls can modify the graph, the process, anything.
- * Process may not exist after excall.
- * Excalls are given the invoking instruction and the
- * process local frame, *after* advancement.
+ *
+ * As they stand, excalls details are not defined.
+ * This is up to your runtime. They return an int, and they receive
+ * at *least* an instruction, a local, and an opaque pointer.
  */
 
 typedef ndl_rhashtable ndl_excall;
 
-typedef void (*ndl_excall_func)(ndl_ref *inst, ndl_ref *local);
+typedef int (*ndl_excall_func)(ndl_ref inst, ndl_ref local, void *external);
 
 /* Create and destroy excall tables.
  *
  * init() creates an excall table and initializes it.
- *     Returns NULL on error.
+ *     Returns NULL on error.a
  * kill() frees an excall table and its memory.
  *
  * minit() creates an excall table in the given memory region.

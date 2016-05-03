@@ -217,5 +217,8 @@ ndl_sym ndl_eval_opcodes_get(void *curr) {
 
 ndl_excall *ndl_eval_excall(void) {
 
+    if (ndl_eval_opcode_table == NULL)
+        ndl_eval_gen_opcode_table();
+
     return ndl_eval_excall_table;
 }

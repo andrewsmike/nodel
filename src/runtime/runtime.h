@@ -1,38 +1,63 @@
 #ifndef NODEL_RUNTIME_H
 #define NODEL_RUNTIME_H
 
-#include "graph.h"
-
-/* Runtimes represent some number of processes acting on
- * a graph. It indexes processes by a numeric identifier.
- *
- * Processes have two primary forms of state:
- * How the process is being executed (external), and
- * whether the process is running, waiting, sleeping, or dead (internal).
- *
- * Processes move between the internal states during the normal course
- * of their execution. External actors may deactivate or reactivate processes
- * as needed.
- *
- * See proc.h for more details.
- *
- */
-
 typedef struct ndl_runtime_s ndl_runtime;
 
-typedef enum ndl_proc_state_e {
+#include "rehashtable.h"
+#include "ndltime.h"
+#include "heap.h"
 
-    ESTATE_NONE, /* Error. */
+#include "graph.h"
+#include "proc.h"
+#include "excall.h"
 
-    ESTATE_RUNNING,
-    ESTATE_SUSPENDED,
-    ESTATE_SLEEPING,
-    ESTATE_WAITING,
+/* Runtimes are a number of processes working on a graph.
+ * Runtime holds the logic to run processes, suspend them,
+ * and supports their various features (excalls, sleep, etc.)
+ *
+ * See proc.h for more details on process state.
+ */
 
-    ESTATE_SIZE
+/* Structure stored in heap for
+ * getting the first clock event.
+ */
+typedef struct ndl_runtime_clockevent_s {
 
-} ndl_proc_state;
+    ndl_time when;
+    ndl_pid head;
+    ndl_runtime *runtime;
 
+} ndl_runtime_clockevent;
+
+/* Holds all information necessary for a runtime to run.
+ * Includes the following:
+ * - Graph, and whether or not to graph_kill() on runtime_kill().
+ * - PID -> ndl_proc hashtable. (Not a pointer, actual procs.)
+ * - clock event heap
+ * - wait event table (ref -> pid (event list head))
+ */
+struct ndl_runtime_s {
+
+    /* Graph to use. */
+    int free_graph;
+    ndl_graph *graph;
+
+    /* PID table. */
+    ndl_pid next_pid;
+    ndl_rhashtable *procs;
+
+    /* Event hooks. */
+
+    /* Events that happen after a timeout.
+     * Gets the most immediate event list head
+     */
+    ndl_heap *clockevents;
+
+    /* Node modify table for wait().
+     * Maps from node ID to event list head.
+     */
+    ndl_rhashtable *waitevents;
+};
 
 /* Create and destroy a runtime.
  * Runtimes encapsulate a node graph and a number of processes.
@@ -55,55 +80,62 @@ uint64_t     ndl_runtime_msize(ndl_graph *graph);
 
 /* Create and destroy processes.
  *
- * proc_init() makes a new process from the given local block.
- *     Returns the PID on success, -1 on error.
- *     Process starts off as suspended.
+ * proc() gets a process give its PID.
+ *     Returns NULL on error.
+ *
+ * proc_init() creates a new process with the given local block and period.
+ *     Returns the new process with PID set, NULL on error.
+ *     Process starts in inactive:running state.
  * proc_kill() deletes a process with the given PID.
  *     Returns 0 on success, nonzero on error.
+ *     This collects dead processes. This also kills living ones.
  */
-int64_t ndl_runtime_proc_init(ndl_runtime *runtime, ndl_ref local);
-int     ndl_runtime_proc_kill(ndl_runtime *runtime, int64_t pid);
+ndl_proc *ndl_runtime_proc(ndl_runtime *runtime, ndl_pid pid);
 
-/* Manipulate running state of processes.
+ndl_proc *ndl_runtime_proc_init(ndl_runtime *runtime,
+                                ndl_ref local, ndl_time period);
+int       ndl_runtime_proc_kill(ndl_runtime *runtime, ndl_proc *proc);
+
+/* Process iterator.
  *
- * Processes can be suspended, can be waiting on a node,
- * can be sleeping (waiting on the clock), or can be running
- * at a set frequency.
+ * proc_head() gets the first process iterator.
+ *     Returns NULL at end-of-list or error.
+ * proc_next() gets the next process iterator.
+ *     Returns NULL at end-of-list or error.
  *
- * proc_getstate() returns the state of a process, or ESTATE_NONE on error.
- *
- * proc_suspend() suspends the PID. Returns 0 on success, -1 on error.
- * proc_resume() wakes up a suspended thread.
- *
- * proc_setfreq() sets the frequency for a PID. Returns 0 on success, -1 on error.
- *     Does not wake up a sleeping/waiting/suspended process.
- *     They will have this freq when they resume.
- *     __Frequency in deci-Hertz.__
- * proc_getfreq() returns the frequency for a PID. Returns -1 on error.
- *
- * proc_setsleep() sleeps a process until the given time.
- *     Use proc_suspend() or proc_resume to unsleep and / or resume process.
- *
- * proc_setwait() waits a process on a given node.
- *     Use proc_suspend() or proc_resume to unwait and / or resume process.
+ * proc_pid() gets the PID of a process iterator.
+ *     Returns NDL_NULL_PID on error.
+ * proc_proc() gets the proc of a process iterator.
+ *     Returns NULL on error.
  */
-ndl_proc_state ndl_runtime_proc_getstate(ndl_runtime *runtime, int64_t pid);
+void *ndl_runtime_proc_head(ndl_runtime *runtime);
+void *ndl_runtime_proc_next(ndl_runtime *runtime, void *prev);
 
-int ndl_runtime_proc_suspend(ndl_runtime *runtime, int64_t pid);
-int ndl_runtime_proc_resume (ndl_runtime *runtime, int64_t pid);
+ndl_pid   ndl_runtime_proc_pid (ndl_runtime *runtime, void *curr); 
+ndl_proc *ndl_runtime_proc_proc(ndl_runtime *runtime, void *curr);
 
-int     ndl_runtime_proc_setfreq(ndl_runtime *runtime, int64_t pid, uint64_t freq);
-int64_t ndl_runtime_proc_getfreq(ndl_runtime *runtime, int64_t pid);
+/* Runtime metadata.
+ *
+ * graph() gets a runtime's graph.
+ * graph_free() returns whether the graph will (1) or will not (0)
+ *     be deleted when the runtime is kill()d.
+ *
+ * proc_count() gets the number of processes in the runtime.
+ * proc_alive() gets the number of active processes in the runtime.
+ * proc_alive() gets whether there are processes running or sleeping.
+ */
+ndl_graph *ndl_runtime_graph     (ndl_runtime *runtime);
+int        ndl_runtime_graph_free(ndl_runtime *runtime);
 
-int ndl_runtime_proc_setsleep(ndl_runtime *runtime, int64_t pid, uint64_t interval);
+uint64_t ndl_runtime_proc_count(ndl_runtime *runtime);
+uint64_t ndl_runtime_proc_living(ndl_runtime *runtime);
+int      ndl_runtime_proc_alive(ndl_runtime *runtime);
 
-int ndl_runtime_proc_setwait(ndl_runtime *runtime, int64_t pid, ndl_ref node);
-
-/* Run the runtime using the scheduler system and events.
- * For an explanation of the scheduler and event system, see above.
+/* Run the runtime using the clock event system.
+ * Timeouts are absolute times (start + duration), rather than relative.
  *
  * run_ready() runs each ready process until no processes are ready, or
- *     the provided timeout is reached. Timeout in usec, ignores if negative.
+ *     the provided timeout is reached. Timeout ignored if zero.
  *     Timeout resolution is pretty low.
  *     Returns zero on success, -1 on error, and 1 on timeout. 
  *
@@ -114,39 +146,14 @@ int ndl_runtime_proc_setwait(ndl_runtime *runtime, int64_t pid, ndl_ref node);
  *     Returns zero if next event has already passed. Returns -1 on error.
  *
  * run_for() calls run_step() and run_sleep() until the given timeout (usec)
- *     is reached, or there are events left. If timeout is negative,
- *     does not use timeout.
+ *     is reached, or there are no events left. Ignores timeout if zero.
  */
-int ndl_runtime_run_ready(ndl_runtime *runtime, int64_t timeout);
+int ndl_runtime_run_ready(ndl_runtime *runtime, ndl_time timeout);
 
-int64_t ndl_runtime_run_sleep (ndl_runtime *runtime, int64_t timeout);
-int64_t ndl_runtime_run_timeto(ndl_runtime *runtime);
+ndl_time ndl_runtime_run_sleep (ndl_runtime *runtime, ndl_time timeout);
+ndl_time ndl_runtime_run_timeto(ndl_runtime *runtime);
 
-int ndl_runtime_run_for(ndl_runtime *runtime, int64_t timeout);
-
-/* Enumerate processes.
- * These pointers are __INVALID__ after any other runtime operations.
- * Do not intermix.
- *
- * proc_head() gets a pointer to the first PID in the list.
- *     Returns NULL at end-of-list.
- * proc_next() gets a pointer to the next PID in the list.
- *     Returns NULL at end-of-list.
- */
-int64_t *ndl_runtime_proc_head(ndl_runtime *runtime);
-int64_t *ndl_runtime_proc_next(ndl_runtime *runtime, int64_t *last);
-
-/* Runtime metadata.
- *
- * graph() gets the runtime's graph.
- * graphown() returns 0 if the graph was lent, 1 if malloc'd().
- * dead() returns 0 if there are events, 1 if there are no waiting events.
- * proc_count() gets the number of processes in the runtime.
- */
-ndl_graph *ndl_runtime_graph      (ndl_runtime *runtime);
-int        ndl_runtime_graphown   (ndl_runtime *runtime);
-int        ndl_runtime_dead       (ndl_runtime *runtime);
-uint64_t   ndl_runtime_proc_count (ndl_runtime *runtime);
+int ndl_runtime_run_for(ndl_runtime *runtime, ndl_time timeout);
 
 /* Print the entire runtime to console. */
 void ndl_runtime_print(ndl_runtime *runtime);
