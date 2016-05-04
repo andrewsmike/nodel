@@ -137,16 +137,22 @@ int      ndl_runtime_proc_alive(ndl_runtime *runtime);
  * run_ready() runs each ready process until no processes are ready, or
  *     the provided timeout is reached. Timeout ignored if zero.
  *     Timeout resolution is pretty low.
- *     Returns zero on success, -1 on error, and 1 on timeout. 
+ *     Timeout is relative (ends before (now + timeout.))
+ *     Returns zero on success, and -1 on error.
  *
  * run_sleep() sleeps the thread until the next event is ready.
- *     Returns number of usec slept, or negative on error.
- *     If timeout is positive, returns at min(timeout, timeto).
- * run_timeto() returns the time until the next event in usec.
- *     Returns zero if next event has already passed. Returns -1 on error.
+ *     Returns the time slept. If error, does not sleep.
+ *     If timeout is NDL_TIME_ZERO, does not timeout.
+ *     Timeout is relative (ends before (now + timeout.))
+ * run_timeto() returns the time until the next event.
+ *     Returns NDL_TIME_ZERO if we're running late,
+ *     there are no processes left, or on error.
  *
- * run_for() calls run_step() and run_sleep() until the given timeout (usec)
- *     is reached, or there are no events left. Ignores timeout if zero.
+ * run_for() calls run_step() and run_sleep() repeatedly.
+ *     If timeout is not NDL_TIME_ZERO, attempts to exit before timeout.
+ *     Timeout is relative (ends before (now + timeout.))
+ *     Returns zero if timeout is reached or runtime is inactive.
+ *     Returns nonzero on error.
  */
 int ndl_runtime_run_ready(ndl_runtime *runtime, ndl_time timeout);
 

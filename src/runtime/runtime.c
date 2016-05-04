@@ -273,8 +273,18 @@ static inline int ndl_runtime_run_event(ndl_runtime *runtime,
     return count;
 }
 
-#define NDL_RUNTIME_RUN_RESOLUTION 32
-static inline int ndl_runtime_run_cready(ndl_runtime *runtime, ndl_time timeout, ndl_time start) {
+
+#define NDL_RUNTIME_MIN_SLEEP (ndl_time_from_usec(10))
+#define NDL_RUNTIME_MIN_CYCLES 32
+
+static inline int ndl_runtime_run_cready(ndl_runtime *runtime, ndl_time timeout, ndl_time now) {
+
+    if (ndl_time_cmp(timeout, NDL_TIME_ZERO) == 0) {
+        timeout.tv_sec = LONG_MAX;
+        timeout.tv_nsec = 0;
+    } else {
+        timeout = ndl_time_add(now, timeout);
+    }
 
     int rcount = 0;
     int err = 0;
@@ -283,7 +293,7 @@ static inline int ndl_runtime_run_cready(ndl_runtime *runtime, ndl_time timeout,
         if (head == NULL)
             return 0;
 
-        if (ndl_time_sub(head->when, start).tv_sec < 0) {
+        if (ndl_time_cmp(ndl_time_sub(head->when, now), NDL_TIME_ZERO) < 0) {
 
             err = ndl_runtime_run_event(runtime, head);
             if (err < 0)
@@ -295,9 +305,9 @@ static inline int ndl_runtime_run_cready(ndl_runtime *runtime, ndl_time timeout,
             return 0;
         }
 
-        if (rcount > NDL_RUNTIME_RUN_RESOLUTION) {
-            start = ndl_time_get();
-            if (ndl_time_cmp(start, NDL_TIME_ZERO) == 0)
+        if (rcount > NDL_RUNTIME_MIN_CYCLES) {
+            now = ndl_time_get();
+            if (ndl_time_cmp(now, NDL_TIME_ZERO) == 0)
                 return -1;
             rcount = 0;
         }
@@ -328,21 +338,26 @@ static inline ndl_time ndl_runtime_run_ctimeto(ndl_runtime *runtime, ndl_time no
     return now;
 }
 
-#define NDL_RUNTIME_MIN_SLEEP (ndl_time_from_usec(10))
+static ndl_time ndl_runtime_run_csleep(ndl_runtime *runtime, ndl_time timeout, ndl_time now) {
 
-static ndl_time ndl_runtime_run_csleep(ndl_runtime *runtime, ndl_time timeout, ndl_time start) {
+    if (ndl_time_cmp(timeout, NDL_TIME_ZERO) == 0) {
+        timeout.tv_sec = LONG_MAX;
+        timeout.tv_nsec = 0;
+    } else {
+        timeout = ndl_time_add(now, timeout);
+    }
 
-    ndl_time timeto = ndl_runtime_run_ctimeto(runtime, start);
+    ndl_time timeto = ndl_runtime_run_ctimeto(runtime, now);
     if (ndl_time_cmp(timeto, NDL_TIME_ZERO) == 0)
         return NDL_TIME_ZERO;
 
-    if (ndl_time_cmp(timeout, timeto) >= 0)
+    if (ndl_time_cmp(timeto, timeout) <= 0)
         timeout = timeto;
 
-    int64_t time = ndl_time_to_usec(timeout);
+    int64_t usec = ndl_time_to_usec(timeout);
     int err;
     if (ndl_time_cmp(timeout, NDL_RUNTIME_MIN_SLEEP) >= 0)
-        err = usleep((uint32_t) time);
+        err = usleep((uint32_t) usec);
     else
         return NDL_TIME_ZERO;
 
@@ -351,18 +366,18 @@ static ndl_time ndl_runtime_run_csleep(ndl_runtime *runtime, ndl_time timeout, n
 
     ndl_time end = ndl_time_get();
     if (ndl_time_cmp(end, NDL_TIME_ZERO) == 0)
-        return NDL_TIME_ZERO;
+        return ndl_time_add(now, timeout); /* Guess. */
 
-    return ndl_time_sub(end, start);
+    return ndl_time_sub(end, now);
 }
 
 ndl_time ndl_runtime_run_sleep(ndl_runtime *runtime, ndl_time timeout) {
 
-    ndl_time start = ndl_time_get();
-    if (ndl_time_cmp(start, NDL_TIME_ZERO) == 0)
+    ndl_time now = ndl_time_get();
+    if (ndl_time_cmp(now, NDL_TIME_ZERO) == 0)
         return NDL_TIME_ZERO;
 
-    return ndl_runtime_run_csleep(runtime, timeout, start);
+    return ndl_runtime_run_csleep(runtime, timeout, now);
 }
 
 ndl_time ndl_runtime_run_timeto(ndl_runtime *runtime) {
@@ -383,34 +398,39 @@ int ndl_runtime_run_for(ndl_runtime *runtime, ndl_time timeout) {
     if (ndl_time_cmp(timeout, NDL_TIME_ZERO) == 0) {
         timeout.tv_sec = LONG_MAX;
         timeout.tv_nsec = 0;
+    } else {
+
+        timeout = ndl_time_add(curr, timeout);
     }
 
-    ndl_time diff = ndl_time_sub(timeout, curr);
+    ndl_time remaining = ndl_time_sub(timeout, curr);
 
-    while (diff.tv_sec >= 0) {
+    while (remaining.tv_sec >= 0) {
 
-        int err = ndl_runtime_run_cready(runtime, diff, curr);
-        if (err != 0)
+        int err = ndl_runtime_run_cready(runtime, remaining, curr);
+        if (err < 0)
             return err;
+        if (err == 1)
+            break;
 
         if (!ndl_runtime_proc_alive(runtime))
-            return 0;
+            break;
 
         curr = ndl_time_get();
         if (ndl_time_cmp(curr, NDL_TIME_ZERO) == 0)
             return -1;
 
-        diff = ndl_time_sub(timeout, curr);
+        remaining = ndl_time_sub(timeout, curr);
 
-        if (diff.tv_sec < 0)
-            return 0;
+        if (remaining.tv_sec < 0)
+            break;
 
-        ndl_time time = ndl_runtime_run_csleep(runtime, diff, curr);
-        if (ndl_time_cmp(time, NDL_TIME_ZERO) == 0)
+        ndl_time slept = ndl_runtime_run_csleep(runtime, remaining, curr);
+        if (ndl_time_cmp(slept, NDL_TIME_ZERO) == 0)
             return -1;
 
-        curr = ndl_time_add(curr, time);
-        diff = ndl_time_sub(timeout, curr);
+        curr = ndl_time_add(curr, slept);
+        remaining = ndl_time_sub(timeout, curr);
     }
 
     return 0;
