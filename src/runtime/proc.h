@@ -152,7 +152,7 @@ int ndl_proc_die   (ndl_proc *proc);
  *
  * run() steps the process forward.
  *     Runs for at most the given number of steps.
- *     Process is not guaranteed to be valid after stepping.
+ *     May remove process from event list, but event list's next PID will be valid.
  */
 void ndl_proc_run(ndl_proc *proc, uint64_t steps);
 

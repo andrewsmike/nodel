@@ -201,44 +201,30 @@ static ndl_proc_reason ndl_proc_excall(ndl_proc *proc, ndl_eval_result res) {
 
 static void ndl_proc_checkmod(ndl_runtime *runtime, ndl_ref node) {
 
-    /* TODO: Checkmod. */
+    void *wait = (ndl_proc *) ndl_rhashtable_get(runtime->waitevents, &node);
+    if (wait == NULL)
+        return;
 
-    /*
-static inline int ndl_runtime_run_checkmod(ndl_runtime *runtime, ndl_ref ref) {
+    ndl_pid next = *((ndl_pid *) wait);
 
-    int64_t *headp = ndl_rhashtable_get(runtime->waitevents, &ref);
-    if (headp == NULL)
-        return 0;
+    while (next != NDL_NULL_PID) {
 
+        ndl_proc *proc = (ndl_proc *) ndl_rhashtable_get(runtime->procs, &next);
+        if (proc == NULL)
+            return;
 
-    ndl_pid head = *headp;
+        next = proc->event_next;
 
-    ndl_proc *curr = ndl_rhashtable_get(runtime->procs, &head);
-    if (curr == NULL)
-        return -1;
-
-    while (curr != NULL) {
-
-        int64_t next_pid = curr->event_next_pid;
-
-        int err = ndl_runtime_proc_suspend(runtime, curr->pid);
+        int err = ndl_proc_suspend(proc);
         if (err != 0)
-            return err;
+            return;
 
-        err = ndl_runtime_proc_resume(runtime, curr->pid);
+        proc->state = ESTATE_RUNNING;
+
+        err = ndl_proc_resume(proc);
         if (err != 0)
-            return err;
-
-        if (next_pid != -1)
-            curr = ndl_rhashtable_get(runtime->procs, &next_pid);
-        else
-            curr = NULL;
+            return;
     }
-
-    return 0;
-}
-
-*/
 }
 
 static void ndl_proc_step(ndl_proc *proc) {
