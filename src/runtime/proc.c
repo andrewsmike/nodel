@@ -36,22 +36,111 @@ int64_t ndl_proc_msize(ndl_runtime *runtime, ndl_ref local, ndl_time period) {
     return sizeof(ndl_proc);
 }
 
+static inline int ndl_proc_wait_resume(ndl_proc *proc) {
+
+    if (proc->state != ESTATE_WAITING)
+        return -1;
+
+    if (proc->active == 1)
+        return 0;
+
+    ndl_rhashtable *waits = proc->runtime->waitevents;
+
+    ndl_pid *head = (ndl_pid *) ndl_rhashtable_get(waits, &proc->waiting);
+    if (head == NULL) {
+        head = ndl_rhashtable_put(waits, &proc->pid, NULL);
+        if (head == NULL)
+            return -1;
+
+        *head = NDL_NULL_PID;
+    }
+
+    proc->event_prev = NDL_NULL_PID;
+    proc->event_next = *head;
+    proc->active = 1;
+
+    *head = proc->pid;
+
+    return 0;
+}
+
+static inline int ndl_proc_wait_suspend(ndl_proc *proc) {
+
+    if (proc->state != ESTATE_WAITING)
+        return -1;
+
+    if (proc->active == 0)
+        return 0;
+
+    ndl_rhashtable *procs = proc->runtime->procs;
+
+    if (proc->event_prev != NDL_NULL_PID) {
+        ndl_proc *prev = (ndl_proc *) ndl_rhashtable_get(procs, &proc->event_prev);
+        if (prev != NULL)
+            prev->event_next = proc->event_next;
+    }
+
+    if (proc->event_next != NDL_NULL_PID) {
+        ndl_proc *next = (ndl_proc *) ndl_rhashtable_get(procs, &proc->event_next);
+        if (next != NULL)
+            next->event_prev = proc->event_prev;
+    }
+
+    int err;
+    if (proc->event_prev == NDL_NULL_PID) {
+
+        ndl_rhashtable *waits = proc->runtime->waitevents;
+
+        if (proc->event_next == NDL_NULL_PID) {
+            err = ndl_rhashtable_del(waits, &proc->waiting);
+            if (err != 0)
+                return -1;
+
+        } else {
+            ndl_pid *head = (ndl_pid *) ndl_rhashtable_get(waits, &proc->waiting);
+            if (head == NULL)
+                return -1;
+
+            *head = proc->event_next;
+        }
+    }
+
+    proc->event_prev = NDL_NULL_PID;
+    proc->event_next = NDL_NULL_PID;
+    proc->active = 0;
+
+    return 0;
+}
+
+static inline int ndl_proc_sleep_resume(ndl_proc *proc) {
+    return -1;
+}
+
+static inline int ndl_proc_sleep_suspend(ndl_proc *proc) {
+    return -1;
+}
+
+static inline int ndl_proc_running_resume(ndl_proc *proc) {
+    return -1;
+}
+
+static inline int ndl_proc_running_suspend(ndl_proc *proc) {
+    return -1;
+}
+
+
 int ndl_proc_suspend(ndl_proc *proc) {
 
     if (!proc->active)
         return 0;
 
     switch (proc->state) {
-
-    case ESTATE_RUNNING: break;
-    case ESTATE_WAITING: break;
-    case ESTATE_SLEEPING: break;
-    default: break;
+    case ESTATE_RUNNING: return ndl_proc_running_suspend(proc);
+    case ESTATE_WAITING: return ndl_proc_wait_suspend(proc);
+    case ESTATE_SLEEPING: return ndl_proc_sleep_suspend(proc);
+    case ESTATE_DEAD: proc->active = 0; return 0;
+    default: return -1;
     }
-
-    proc->active = 0;
-
-    return 0;
 }
 
 int ndl_proc_resume(ndl_proc *proc) {
@@ -60,16 +149,12 @@ int ndl_proc_resume(ndl_proc *proc) {
         return 0;
 
     switch (proc->state) {
-
-    case ESTATE_RUNNING: break;
-    case ESTATE_WAITING: break;
-    case ESTATE_SLEEPING: break;
-    default: break;
+    case ESTATE_RUNNING: return ndl_proc_running_resume(proc);
+    case ESTATE_WAITING: return ndl_proc_wait_resume(proc);
+    case ESTATE_SLEEPING: return ndl_proc_sleep_resume(proc);
+    case ESTATE_DEAD: proc->active = 1; return 0;
+    default: return -1;
     }
-
-    proc->active = 1;
-
-    return 0;
 }
 
 int ndl_proc_active(ndl_proc *proc) {
