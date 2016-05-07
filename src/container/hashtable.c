@@ -141,7 +141,7 @@ void *ndl_hashtable_put(ndl_hashtable *table, void *key, void *value) {
         uint8_t *currkey = ((uint8_t *) curr) + sizeof(ndl_hashtable_bucket);
         uint8_t *currval = currkey + table->key_size;
 
-        if (curr->marker == 0) {
+        if ((curr->marker == 0) || (curr->marker == -1)) {
             curr->marker = 1;
             table->size++;
             memcpy(currkey, key, table->key_size);
@@ -165,6 +165,8 @@ void *ndl_hashtable_put(ndl_hashtable *table, void *key, void *value) {
             curr = (ndl_hashtable_bucket *) base;
 
     } while (curr != start);
+
+    ndl_hashtable_print(table);
 
     return NULL;
 }
