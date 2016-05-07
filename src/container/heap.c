@@ -68,6 +68,9 @@ uint64_t ndl_heap_msize(uint64_t data_size,
 static inline void *ndl_heap_parent(ndl_vector *vec, void *elem) {
 
     void *base = ndl_vector_get(vec, 0);
+    if (base == NULL)
+        return NULL;
+
     uint64_t elem_size = ndl_vector_elem_size(vec);
     uint64_t index = ((uint64_t) ((uint8_t *) elem - (uint8_t *) base)) / elem_size;
 
@@ -243,8 +246,6 @@ void *ndl_heap_put(ndl_heap *heap, void *data) {
 int ndl_heap_del(ndl_heap *heap, void *data) {
 
     ndl_heap_delete(heap, data);
-
-    ndl_vector_pop((ndl_vector *) heap->vector);
 
     return 0;
 }
