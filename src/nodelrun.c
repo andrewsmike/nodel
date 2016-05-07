@@ -120,7 +120,7 @@ int main(int argc, char *argv[]) {
         ndl_graph_set(graph, local, key, arg);
     }
 
-    ndl_proc *proc = ndl_runtime_proc_init(runtime, local, ndl_time_from_usec(100000));
+    ndl_proc *proc = ndl_runtime_proc_init(runtime, local, ndl_time_from_usec(10000));
     if (proc == NULL) {
         fprintf(stderr, "Failed to create process.\n");
         exit(EXIT_FAILURE);

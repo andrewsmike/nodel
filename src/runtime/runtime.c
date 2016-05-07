@@ -240,6 +240,8 @@ int ndl_runtime_proc_alive(ndl_runtime *runtime) {
 static inline int ndl_runtime_run_event(ndl_runtime *runtime,
                                         ndl_runtime_clockevent *head) {
 
+    ndl_heap *ce = runtime->clockevents;
+
     ndl_pid pid = head->head;
     ndl_proc *curr = ndl_rhashtable_get(runtime->procs, &pid);
     if (curr == NULL)
@@ -267,8 +269,10 @@ static inline int ndl_runtime_run_event(ndl_runtime *runtime,
 
     } while (pid != -1);
 
-    head->when = ndl_time_add(head->when, period);
-    ndl_heap_readj(runtime->clockevents, head);
+    if (ndl_heap_peek(ce) == head) {
+        head->when = ndl_time_add(head->when, period);
+        ndl_heap_readj(ce, head);
+    }
 
     return count;
 }

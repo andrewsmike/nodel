@@ -136,12 +136,23 @@ static int ndl_proc_sched(ndl_proc *proc, ndl_time delta) {
     if (ret == NULL)
         return -1;
 
+    proc->active = 1;
+    proc->event_prev = NDL_NULL_PID;
+    proc->event_next = NDL_NULL_PID;
+    proc->head = ret;
+
     return 0;
 }
 
 static int ndl_proc_desched(ndl_proc *proc) {
 
-    return ndl_heap_del(proc->runtime->clockevents, proc->head);
+    int err = ndl_heap_del(proc->runtime->clockevents, proc->head);
+    if (err != 0)
+        return err;
+
+    proc->active = 0;
+
+    return 0;
 }
 
 static inline int ndl_proc_sleep_resume(ndl_proc *proc) {
@@ -155,8 +166,6 @@ static inline int ndl_proc_sleep_resume(ndl_proc *proc) {
     int err = ndl_proc_sched(proc, proc->duration);
     if (err != 0)
         return err;
-
-    proc->active = 1;
 
     return 0;
 }
@@ -173,8 +182,6 @@ static inline int ndl_proc_sleep_suspend(ndl_proc *proc) {
     if (err != 0)
         return err;
 
-    proc->active = 0;
-
     return 0;
 }
 
@@ -190,8 +197,6 @@ static inline int ndl_proc_running_resume(ndl_proc *proc) {
     if (err != 0)
         return err;
 
-    proc->active = 1;
-
     return 0;
 }
 
@@ -206,8 +211,6 @@ static inline int ndl_proc_running_suspend(ndl_proc *proc) {
     int err = ndl_proc_desched(proc);
     if (err != 0)
         return err;
-
-    proc->active = 0;
 
     return 0;
 }
