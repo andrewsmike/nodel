@@ -48,16 +48,19 @@ able to run programs generated from a basic assembly language.
 Future work
 -----------
 Refactoring/improvements:
-- Move rehashtable to lazy copy for absolute O(1), rather than amortized O(1).
+- Move rehashtable to lazy copy for absolute O(1), rather than amortized O(1)?
 - Move away from lazy delete.
+- Hash caching?
 
 - Continue work on the runtime systems
 - - Rebuild and refactor everything
 - - Comprehensive process control
 - - Add periodic GC
-- - Add excall hook and registry system
-- - - Storage management excalls (dcopy)?
-- - - Process management excalls?
+- - Storage management excalls
+- - Process management excalls
+- - Make heap significantly more efficient
+- - Freq=max and operation grouping
+- - Improve heap efficiency (Go back to stable pointer slabheap?)
 - - Runtime serialization (possibly just encode into graph, save graph and root)
 
 - Further performance analysis

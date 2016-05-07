@@ -112,20 +112,104 @@ static inline int ndl_proc_wait_suspend(ndl_proc *proc) {
     return 0;
 }
 
+static int ndl_proc_sched(ndl_proc *proc, ndl_time delta) {
+
+    ndl_time now;
+
+    if (ndl_time_cmp(delta, NDL_TIME_ZERO) != 0) {
+        now = ndl_time_get();
+        if (ndl_time_cmp(now, NDL_TIME_ZERO) == 0)
+            return -1;
+    } else {
+        now = NDL_TIME_ZERO;
+    }
+
+    ndl_runtime *runtime = proc->runtime;
+
+    ndl_runtime_clockevent ev = {
+        .when = ndl_time_add(now, delta),
+        .head = proc->pid,
+        .runtime = runtime
+    };
+
+    void *ret = ndl_heap_put(runtime->clockevents, &ev);
+    if (ret == NULL)
+        return -1;
+
+    return 0;
+}
+
+static int ndl_proc_desched(ndl_proc *proc) {
+
+    return ndl_heap_del(proc->runtime->clockevents, proc->head);
+}
+
 static inline int ndl_proc_sleep_resume(ndl_proc *proc) {
-    return -1;
+
+    if (proc->state != ESTATE_SLEEPING)
+        return -1;
+
+    if (proc->active == 1)
+        return 0;
+
+    int err = ndl_proc_sched(proc, proc->duration);
+    if (err != 0)
+        return err;
+
+    proc->active = 1;
+
+    return 0;
 }
 
 static inline int ndl_proc_sleep_suspend(ndl_proc *proc) {
-    return -1;
+
+    if (proc->state != ESTATE_SLEEPING)
+        return -1;
+
+    if (proc->active == 0)
+        return 0;
+
+    int err = ndl_proc_desched(proc);
+    if (err != 0)
+        return err;
+
+    proc->active = 0;
+
+    return 0;
 }
 
 static inline int ndl_proc_running_resume(ndl_proc *proc) {
-    return -1;
+
+    if (proc->state != ESTATE_RUNNING)
+        return -1;
+
+    if (proc->active == 1)
+        return 0;
+
+    int err = ndl_proc_sched(proc, proc->period);
+    if (err != 0)
+        return err;
+
+    proc->active = 1;
+
+    return 0;
 }
 
 static inline int ndl_proc_running_suspend(ndl_proc *proc) {
-    return -1;
+
+    if (proc->state != ESTATE_RUNNING)
+        return -1;
+
+    if (proc->active == 0)
+        return 0;
+
+    int err = ndl_proc_desched(proc);
+    if (err != 0)
+        return err;
+
+    proc->active = 0;
+
+    return 0;
 }
 
 
