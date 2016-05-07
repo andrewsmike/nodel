@@ -430,8 +430,6 @@ int ndl_runtime_run_for(ndl_runtime *runtime, ndl_time timeout) {
             break;
 
         ndl_time slept = ndl_runtime_run_csleep(runtime, remaining, curr);
-        if (ndl_time_cmp(slept, NDL_TIME_ZERO) == 0)
-            return -1;
 
         curr = ndl_time_add(curr, slept);
         remaining = ndl_time_sub(timeout, curr);
