@@ -49,11 +49,10 @@ Future work
 -----------
 Refactoring/improvements:
 - Move rehashtable to lazy copy for absolute O(1), rather than amortized O(1)?
-- Move away from lazy delete.
 - Hash caching?
 
+- Replace runtime with efficient and realistic ~100Hz batching system.
 - Continue work on the runtime systems
-- - Rebuild and refactor everything
 - - Comprehensive process control
 - - Add periodic GC
 - - Storage management excalls

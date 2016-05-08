@@ -20,7 +20,7 @@
         exit(EXIT_FAILURE);           \
     } while (0)
 
-#define FILE_BUFFER_SIZE (uint64_t) (2 << 16)
+#define FILE_BUFFER_SIZE (uint64_t) (2 << 10)
 
 static inline ndl_value parse_sym(char *arg) {
 
@@ -120,7 +120,7 @@ int main(int argc, char *argv[]) {
         ndl_graph_set(graph, local, key, arg);
     }
 
-    ndl_proc *proc = ndl_runtime_proc_init(runtime, local, ndl_time_from_usec(10000));
+    ndl_proc *proc = ndl_runtime_proc_init(runtime, local, ndl_time_from_usec(100));
     if (proc == NULL) {
         fprintf(stderr, "Failed to create process.\n");
         exit(EXIT_FAILURE);
@@ -130,6 +130,10 @@ int main(int argc, char *argv[]) {
     ndl_runtime_run_for(runtime, NDL_TIME_ZERO);
 
     printf("Exiting.\n");
+
+    ndl_runtime_kill(runtime);
+    ndl_graph_kill(graph);
+    free(buff);
 
     exit(EXIT_SUCCESS);
 }
