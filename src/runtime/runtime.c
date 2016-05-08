@@ -30,7 +30,7 @@ static int ndl_runtime_clockevent_cmp(void *a, void *b) {
     ndl_runtime_clockevent *at = (ndl_runtime_clockevent *) a;
     ndl_runtime_clockevent *bt = (ndl_runtime_clockevent *) b;
 
-    return ndl_time_cmp(at->when, bt->when);
+    return -ndl_time_cmp(at->when, bt->when);
 }
 
 ndl_runtime *ndl_runtime_init(ndl_graph *graph) {
@@ -252,6 +252,9 @@ static inline int ndl_runtime_run_event(ndl_runtime *runtime,
 
     ndl_time period = curr->period;
 
+    head->when = ndl_time_add(head->when, period);
+    ndl_heap_readj(ce, head);
+
     ndl_pid next_pid;
     int count = 0;
     do {
@@ -268,11 +271,6 @@ static inline int ndl_runtime_run_event(ndl_runtime *runtime,
         pid = next_pid;
 
     } while (pid != -1);
-
-    if (ndl_heap_peek(ce) == head) {
-        head->when = ndl_time_add(head->when, period);
-        ndl_heap_readj(ce, head);
-    }
 
     return count;
 }
